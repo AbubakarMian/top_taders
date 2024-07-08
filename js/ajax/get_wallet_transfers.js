@@ -34,7 +34,7 @@ function get_Wallet_transfers_info(wallet_address) {
                     '<span class="copy-text" data-text="' + item.txHash + '">' + truncatedTxHash + '</span>' +
                     '<button class="btn btn-sm btn-outline-primary copy-btn">Copy</button>' +
                     '</td>' +
-                    '<td>' + item.lamport + '</td>' +
+                    // '<td>' + item.lamport + '</td>' +
                     // `<td><div class="btn btn-primary defi-activities" onclick="getDefiActivities('` + item.src + `')">
                     //         Load</div></td>` +
                     '</tr>';
@@ -44,7 +44,9 @@ function get_Wallet_transfers_info(wallet_address) {
                     console.log('amount check ',(item.transferred_amount_sol > 0.9));
                     if(item.lamport > 1000000){
                         defi_activities_tbl_body.append(row);
-                        getDefiActivityDetail(item.txHash);
+                        setTimeout(function(){
+                            getDefiActivityDetail(item.txHash);                            
+                        },1000);
                     }
             });
             $('.copy-btn').on('click', function() {

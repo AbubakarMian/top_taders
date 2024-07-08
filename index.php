@@ -69,7 +69,7 @@
                                         <th>To</th>
                                         <th>From</th>
                                         <th>Signature</th>
-                                        <th>Amount</th>
+                                        <!-- <th>Amount</th> -->
                                         <!-- <th>Defi Activities</th> -->
                                     </tr>
                                 </thead>
@@ -86,14 +86,14 @@
                                         <th>To</th>
                                         <th>From</th>
                                         <th>Signature</th>
-                                        <th>Amount</th>
+                                        <!-- <th>Amount</th> -->
                                     </tr>
                                 </thead>
                                 <tbody id="defi_activities_tbl_body">
                                     <tr>
-                                        <td>Data 1</td>
-                                        <td>Data 2</td>
-                                        <td>Data 3</td>
+                                        <td></td>
+                                        <td></td>
+                                        <td></td>
                                     </tr>
                                     <!-- More rows as needed -->
                                 </tbody>
@@ -111,9 +111,9 @@
                                 </thead>
                                 <tbody id="defi_transactional_details_tbl_body">
                                     <tr>
-                                        <td>Data 1</td>
-                                        <td>Data 2</td>
-                                        <td>Data 3</td>
+                                        <td></td>
+                                        <td></td>
+                                        <td></td>
                                     </tr>
                                     <!-- More rows as needed -->
                                 </tbody>
@@ -130,9 +130,9 @@
                                 </thead>
                                 <tbody id="portfolio_details_tbl_body">
                                     <tr>
-                                        <td>Data 1</td>
-                                        <td>Data 2</td>
-                                        <td>Data 3</td>
+                                        <td></td>
+                                        <td></td>
+                                        <td></td>
                                     </tr>
                                     <!-- More rows as needed -->
                                 </tbody>

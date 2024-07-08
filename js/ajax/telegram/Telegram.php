@@ -13,9 +13,9 @@ class Telegram
             'chat_id' => '@'.$group_chat_id, //'@update_contracts_token129',
             'text' => $message,
         ];
-        $response = file_get_contents("http://api.telegram.org/bot$apiToken/sendMessage?" . http_build_query($data) . "&parse_mode=html");
-
-        print_r($response);
+        $response = file_get_contents("http://api.telegram.org/bot$apiToken/sendMessage?" . http_build_query($data) . "&parse_mode=Markdown");
+        return $response;
+        // print_r($response);
     }
      
 }
