@@ -1,7 +1,11 @@
 <?php
 
+include('../../../common/sol_scan.php');
 require_once('Telegram.php');
 
+$solScan = new SolScan();
+$transfers = $solScan->getAccountTokens($_GET['wallet_address']);
+echo $transfers;
 // use Database\Database;
 use Telegram\Telegram;
 

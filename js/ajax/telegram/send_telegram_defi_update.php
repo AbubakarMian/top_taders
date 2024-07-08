@@ -1,7 +1,12 @@
 <?php
 
+include('../../../common/sol_scan.php');
 require_once('Telegram.php');
 
+$solScan = new SolScan();
+$transactionDetails = $solScan->getTransactionDetails($_GET['signature']);
+
+echo $transfers;
 // use Database\Database;
 use Telegram\Telegram;
 
