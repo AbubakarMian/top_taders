@@ -59,6 +59,6 @@
     padding: 20px;
     border-radius: 5px;
     border: 1px solid #ddd;
-    min-height: 156px;
-    overflow: scroll;
+    min-height: 175px;
+    overflow-x: scroll;
 }
