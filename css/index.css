@@ -1,0 +1,64 @@
+.body_back {
+    background-image: url(../images/3.jpg);
+    background-color: #cccccc;
+    background-size: cover;
+    background-position: center;
+}
+.logo {
+    width: 150px;
+    border: solid 1px gray;
+    border-radius: 10px;
+    box-shadow: 1px 1px 16px 3px;
+}
+.logo_area {
+    margin-top: 52px;
+}
+.inp {
+    border: solid 1px transparent;
+}
+.wall_btn {
+    width: 100%;
+}
+.nav-pills .nav-link.active {
+    color: #fff;
+    background-color: #6d90ad !important;
+    font-weight: 700;
+}
+.nav-pills .nav-link {
+    color: #123975;
+    font-weight: 700;
+    box-shadow: 1px 1px 10px 1px;
+    margin-bottom: 10px;
+}
+.wall_btn {
+    background-color: #6d90ad !important;
+    border: solid 1px #bdbaba !important;
+    font-weight: 700 !important;
+}
+.wizard {
+    margin: 20px auto;
+    background: #9f9d9d57;
+    padding: 20px;
+    border-radius: 5px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+.tbl_style {
+    width: 100%;
+    margin-bottom: 1rem;
+    color: #0f1334;
+    border: solid 0px #8aa8bf;
+}
+.tbl_style thead th {
+    vertical-align: bottom;
+    border-bottom: 2px solid #dee2e6;
+    background-color: #abbfcf;
+    color: #1b3c73;
+}
+.wizard .tab-content {
+    background: #fff;
+    padding: 20px;
+    border-radius: 5px;
+    border: 1px solid #ddd;
+    min-height: 156px;
+    overflow: scroll;
+}

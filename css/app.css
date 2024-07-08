@@ -4,25 +4,14 @@ body {
 .tbl-img{
     width: 41px;
 }
-.wizard {
-    margin: 20px auto;
-    background: #fff;
-    padding: 20px;
-    border-radius: 5px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-}
+
 .wizard .nav-tabs {
     margin-bottom: 20px;
 }
 .wizard .tab-pane {
     position: relative;
 }
-.wizard .tab-content {
-    background: #fff;
-    padding: 20px;
-    border-radius: 5px;
-    border: 1px solid #ddd;
-}
+
 .wizard .nav-tabs .nav-link.active {
     background-color: #17a2b8;
     color: #fff;
