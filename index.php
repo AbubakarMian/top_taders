@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="css/app.css">
 </head>
 <!-- GavdQbE7LjmsrG5CvmkkRtwWzjf4Nev34DhjF2SnANpX -->
+ 
 <body>
     <div class="container">
         <img src="images/top_traders.jpg" alt="Bullsama AI Bot Logo" class="logo">
@@ -24,6 +25,9 @@
                 </li>
                 <li class="nav-item">
                     <a href="#tab3" class="nav-link" data-toggle="tab">Transaction details</a>
+                </li>
+                <li class="nav-item">
+                    <a href="#tab4" class="nav-link" data-toggle="tab">Portfolio</a>
                 </li>
             </ul>
             <div class="tab-content">
@@ -86,6 +90,25 @@
                         </tbody>
                     </table>
                 </div>
+                <div class="tab-pane" id="tab4">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Account</th>
+                                <th>Token</th>
+                                <th>Balance</th>
+                            </tr>
+                        </thead>
+                        <tbody id="portfolio_details_tbl_body">
+                            <tr>
+                                <td>Data 1</td>
+                                <td>Data 2</td>
+                                <td>Data 3</td>
+                            </tr>
+                            <!-- More rows as needed -->
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
@@ -93,14 +116,16 @@
     <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script src="js/ajax/common.js"></script>
     <script src="js/ajax/get_wallet_transfers.js"></script>
     <script src="js/ajax/defi_activities.js"></script>
-    <script src="js/ajax/common.js"></script>
+    <script src="js/ajax/portfolio.js"></script>
     <script>
         var app_url = "http://localhost/top_traders";
         function get_complete_details() {
             var wallet_address = $('#input_wallet_address').val();
             get_Wallet_transfers_info(wallet_address);
+            getPortfolio(wallet_address);
         }
     </script>
 </body>

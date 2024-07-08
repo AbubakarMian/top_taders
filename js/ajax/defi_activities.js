@@ -1,6 +1,4 @@
 function getDefiActivityDetail(signature) {
-    // Example: Fetch defi activities for the account address
-    console.log('function defi activites details '+signature);
     $.ajax({
         url: app_url + "/ajax/transaction_details.php",
         method: "GET",

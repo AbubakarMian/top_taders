@@ -5,6 +5,36 @@ class SolScan
 {
     public $solscan_key = SOLSCAN_KEY;
 
+    
+    function getAccountTokens($walletAddress)
+    {
+        $solscan_key = $this->solscan_key;
+        $url = "https://pro-api.solscan.io/v1.0/account/tokens?account=$walletAddress";
+        $curl = curl_init();
+        $token = "token: $solscan_key";
+        curl_setopt_array($curl, array(
+            CURLOPT_URL => $url,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_ENCODING => '',
+            CURLOPT_MAXREDIRS => 10,
+            CURLOPT_TIMEOUT => 0,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+            CURLOPT_CUSTOMREQUEST => 'GET',
+            CURLOPT_HTTPHEADER => array(
+                'accept: application/json',
+                $token
+            ),
+        ));
+
+        $response = curl_exec($curl);
+
+        curl_close($curl);
+        // $response = $this->addTransferredAmount($response, $walletAddress);
+        // return json_decode($response,true);
+        return $response;
+    }
+
     function getWalletTransfers($walletAddress, $limit = 10)
     {
         $solscan_key = $this->solscan_key;
