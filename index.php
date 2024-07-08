@@ -153,7 +153,13 @@
     <script src="js/ajax/defi_activities.js"></script>
     <script src="js/ajax/portfolio.js"></script>
     <script>
-        var app_url = "http://localhost/top_traders";
+        // var app_url = "http://localhost/top_traders";
+        var protocol = window.location.protocol;
+        var hostname = window.location.hostname;
+        var port = window.location.port;
+        var path = "/top_traders";
+        var app_url = protocol + "//" + hostname + (port ? ":" + port : "") + path;
+
 
         function get_complete_details() {
             var wallet_address = $('#input_wallet_address').val();
