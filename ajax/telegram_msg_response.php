@@ -5,15 +5,26 @@ use Telegram\Telegram;
 
 $solScan = new SolScan();
 $action = $_GET['action'];
-if($action == 'unique_tokens'){
+if(in_array($action,['unique_tokens','wallet_info']) ){
     $transfers = $solScan->getAccountTokens($_GET['wallet_address']);
     // echo $transfers;
 
     $transfers_json = json_decode($transfers,true);
-    $message = 'Unique Tokens : Total '.count($transfers_json)." \n ";
+    $unique_token_message = 'Unique Tokens : Total '.count($transfers_json)." \n ";
+    $wallet_info_message = "";
+    $message = '';
     foreach ($transfers_json as $key => $transfer) {
-        $message .= " 💰Account ".$transfer['tokenAccount']." \n ";
-        $message .= " 💲Balance ".$transfer['tokenAmount']['uiAmountString'].' '.$transfer['tokenSymbol']." \n ";
+        $unique_token_message .= " 💰Account ".$transfer['tokenAccount']." \n ";
+        $unique_token_message .= " 💲Balance ".$transfer['tokenAmount']['uiAmountString'].' '.$transfer['tokenSymbol']." \n ";
+        $wallet_info_message .= " 💰Account ".$transfer['tokenAccount']." \n ";
+        $wallet_info_message .= " 💲Balance ".$transfer['tokenAmount']['uiAmountString'].' '.$transfer['tokenSymbol']." \n ";
+        
+    }
+    if($action == 'unique_tokens'){
+        $message = $unique_token_message;
+    }
+    else{
+        $message = $wallet_info_message;
     }
         $res = [
             'status'=>true,
