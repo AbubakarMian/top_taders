@@ -44,6 +44,7 @@ if($action==='defi_activities' ){
 
     $transfers_json = json_decode($transfers,true);
     $message = 'Defi Activities \n';
+    $empty_msg = " sorry no defi activities here";
     foreach ($transfers_json as $key => $transfer) {
         if(!in_array($transfer['tokenName'],[
             "Pump fun",
@@ -53,10 +54,13 @@ if($action==='defi_activities' ){
         ])){
             continue;
         }
+        $empty_msg = "";
+
         $message .= " 💰Account ".$transfer['tokenAccount']." \n ";
         $message .= " 💲Balance ".$transfer['tokenAmount']['uiAmountString'].' '.$transfer['tokenSymbol']." \n ";
         
     }
+    $message .=$empty_msg; 
         $res = [
             'status'=>true,
             'response'=>[
