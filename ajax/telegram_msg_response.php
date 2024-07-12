@@ -43,7 +43,7 @@ if($action==='defi_activities' ){
     // echo $transfers;
 
     $transfers_json = json_decode($transfers,true);
-    $message = 'Defi Activities \n';
+    $message = "Defi Activities \n";
     $empty_msg = " sorry no defi activities here";
     foreach ($transfers_json as $key => $transfer) {
         if(!in_array($transfer['tokenName'],[
