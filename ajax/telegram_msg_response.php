@@ -14,6 +14,9 @@ if(in_array($action,['unique_tokens','wallet_info']) ){
     $wallet_info_message = "";
     $message = '';
     foreach ($transfers_json as $key => $transfer) {
+        if(!isset($transfer['tokenSymbol'])){
+            $transfer['tokenSymbol'] = '';
+        }
         $unique_token_message .= " 💰Account ".$transfer['tokenAccount']." \n ";
         $unique_token_message .= " 💲Balance ".$transfer['tokenAmount']['uiAmountString'].' '.$transfer['tokenSymbol']." \n ";
         $wallet_info_message .= " 💰Account ".$transfer['tokenAccount']." \n ";
