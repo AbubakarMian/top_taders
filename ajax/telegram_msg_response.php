@@ -38,3 +38,34 @@ if(in_array($action,['unique_tokens','wallet_info']) ){
         die();
 }
 
+if($action==='defi_activities' ){
+    $transfers = $solScan->getAccountTokens($_GET['wallet_address']);
+    // echo $transfers;
+
+    $transfers_json = json_decode($transfers,true);
+    $message = 'Defi Activities \n';
+    foreach ($transfers_json as $key => $transfer) {
+        if(!in_array($transfer['tokenName'],[
+            "Pump fun",
+            "Moon shot",
+            "Raydium",
+            "Júpiter",
+        ])){
+            continue;
+        }
+        $message .= " 💰Account ".$transfer['tokenAccount']." \n ";
+        $message .= " 💲Balance ".$transfer['tokenAmount']['uiAmountString'].' '.$transfer['tokenSymbol']." \n ";
+        
+    }
+        $res = [
+            'status'=>true,
+            'response'=>[
+                'message'=>$message,
+                'data'=>$transfers_json
+            ],
+            'error'=>[]
+        ];
+        echo json_encode($res);
+        die();
+}
+
