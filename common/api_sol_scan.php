@@ -84,6 +84,10 @@ class ApiSolScan
         return [
             'transactional_details' => $getTransactionalDetails,
             'assosiative_wallets' => $assosiative_wallets,
+            [
+                'addresses' => $assosiative_wallets['wallet_address'],
+                'token_details' => $assosiative_wallets['wallet_token_details']
+            ]
         ];
     }
     function getTransactionalDetails($transactions)
@@ -130,8 +134,8 @@ class ApiSolScan
             $total_profit += $res['wallet'][$transaction['src']]['total_profit'];
             $total_transactions++;
         }
-        $res['aggrigate_result']['roi'] = round($total_roi/ $total_transactions,5);
-        $res['aggrigate_result']['win_rate'] = round($total_win_rate / $total_transactions,5);
+        $res['aggrigate_result']['roi'] = round($total_roi / $total_transactions, 5);
+        $res['aggrigate_result']['win_rate'] = round($total_win_rate / $total_transactions, 5);
         $res['aggrigate_result']['profit'] = number_format(round($total_profit, 5), 5); // Total profit is already summed up
 
         // die(json_encode($res));
@@ -148,7 +152,14 @@ class ApiSolScan
         $merged_values = array_merge($src_values, $dst_values);
         $unique_addresses = array_unique($merged_values);
         $unique_addresses = array_values($unique_addresses);
-        return $unique_addresses;
+
+        foreach ($unique_addresses as $key => $unique_address) {
+            $token_details[] = $this->getAccountTokens($unique_address);
+        }
+        return [
+            'wallet_address' => $unique_addresses,
+            'wallet_token_details' => $token_details
+        ];
     }
 
     function calculateWalletTotalSolAmount($json_response)
@@ -252,9 +263,9 @@ class ApiSolScan
                     $amount = $event['amount'];
                     // if(!isset($event['symbol']))
                     // die(json_encode($event));
-                    $tokenSymbol = $event['symbol']??'SOL';
-                    $tokenDecimals = $event['decimals']??9;
-                    $tokenIcon = $event['icon']??'';
+                    $tokenSymbol = $event['symbol'] ?? 'SOL';
+                    $tokenDecimals = $event['decimals'] ?? 9;
+                    $tokenIcon = $event['icon'] ?? '';
                     $amountToUse = isset($event['postAmount']) ? $event['postAmount'] : $event['amount'];
                     // $tokenValue = $amountToUse / pow(10, $tokenDecimals);
                     $tokenValue = $this->convert_val_to_coin($amountToUse, $tokenDecimals);
@@ -329,9 +340,20 @@ class ApiSolScan
 
     function getConversionRates()
     {
+        return [
+            "raydium" => ["usd" => 1.95],
+            "solana" => ["usd" => 159.27]
+        ];
         $apiUrl = 'https://api.coingecko.com/api/v3/simple/price?ids=solana,raydium&vs_currencies=usd';
-        $response = file_get_contents($apiUrl);
-        return json_decode($response, true);
+        $response = @file_get_contents($apiUrl);
+        if ($response) {
+            return json_decode($response, true);
+        } else {
+            return [
+                "raydium" => ["usd" => 1.95],
+                "solana" => ["usd" => 159.27]
+            ];
+        }
     }
 
 
