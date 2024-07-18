@@ -40,6 +40,7 @@ class ApiSolScan
         $response = new \stdClass();
         $total_sol_amount = $this->calculateWalletTotalSolAmount($wallet_address_res);
         $response->address = $walletAddress;
+        $response->token_details = json_decode($wallet_address_res);
         $response->total_tokens = $total_sol_amount['total_token'];
         $response->sol_balance = $total_sol_amount['sol_balance'];
         $response->usd_balance = $this->solToUsd($total_sol_amount['sol_balance']);
