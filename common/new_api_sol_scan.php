@@ -84,6 +84,10 @@ class ApiSolScan
         return [
             'transactional_details' => $getTransactionalDetails,
             'assosiative_wallets' => $assosiative_wallets,
+            [
+                'addresses' => $assosiative_wallets['wallet_address'],
+                'token_details' => $assosiative_wallets['wallet_token_details']
+            ]
         ];
     }
     function getTransactionalDetails($transactions)
@@ -148,7 +152,14 @@ class ApiSolScan
         $merged_values = array_merge($src_values, $dst_values);
         $unique_addresses = array_unique($merged_values);
         $unique_addresses = array_values($unique_addresses);
-        return $unique_addresses;
+
+        foreach ($unique_addresses as $key => $unique_address) {
+            $token_details[] = $this->getAccountTokens($unique_address);
+        }
+        return [
+            'wallet_address' => $unique_addresses,
+            'wallet_token_details' => $token_details
+        ];
     }
 
     function calculateWalletTotalSolAmount($json_response)
@@ -326,7 +337,6 @@ class ApiSolScan
             'profit' => $profit,
         ];
     }
-
 
     function getConversionRates()
     {
