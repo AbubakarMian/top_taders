@@ -130,8 +130,8 @@ class ApiSolScan
             $total_profit += $res['wallet'][$transaction['src']]['total_profit'];
             $total_transactions++;
         }
-        $res['aggrigate_result']['roi'] = round($total_roi / $total_transactions, 5);
-        $res['aggrigate_result']['win_rate'] = round($total_win_rate / $total_transactions, 5);
+        $res['aggrigate_result']['roi'] = round($total_roi / $total_transactions, 5) * 100;
+        $res['aggrigate_result']['win_rate'] = round($total_win_rate / $total_transactions, 5) * 100;
         $res['aggrigate_result']['profit'] = number_format(round($total_profit, 5), 5); // Total profit is already summed up
 
         // die(json_encode($res));
