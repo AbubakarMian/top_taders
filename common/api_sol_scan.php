@@ -42,9 +42,45 @@ class ApiSolScan
         $response->address = $walletAddress;
         $response->token_details = json_decode($wallet_address_res);
         $response->total_tokens = $total_sol_amount['total_token'];
-        $response->sol_balance = $total_sol_amount['sol_balance'];
+        // $response->sol_balance = $total_sol_amount['sol_balance'];
+        // $response->usd_balance = $this->solToUsd($total_sol_amount['sol_balance']);
+        $response->sol_balance = $this->getSolanabalancefromapi($walletAddress);
         $response->usd_balance = $this->solToUsd($total_sol_amount['sol_balance']);
         return $response;
+    }
+
+    function getSolanabalancefromapi($walletAddress){
+
+        $url = "https://api.mainnet-beta.solana.com";
+        $data = [
+            'jsonrpc' => '2.0',
+            'id' => 1,
+            'method' => 'getBalance',
+            'params' => [$walletAddress]
+        ];
+    
+        $options = [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
+            CURLOPT_POST => true,
+            CURLOPT_POSTFIELDS => json_encode($data)
+        ];
+    
+        $ch = curl_init($url);
+        curl_setopt_array($ch, $options);
+        $response = curl_exec($ch);
+        if (curl_errno($ch)) {
+            echo 'Error:' . curl_error($ch);
+        }
+        curl_close($ch);
+
+    $response_json = json_decode($response, true);
+    $balanceLamports = $response_json['result']['value'];
+    
+    $balanceSol = $balanceLamports / 1000000000; // 1 SOL = 1,000,000,000 lamports
+    return $balanceSol;
+    // echo "Balance: " . $balanceSol . " SOL\n";
+
     }
     function solToUsd($total_sol)
     {
@@ -170,6 +206,7 @@ class ApiSolScan
     }
     function convert_val_to_coin($amount, $decimals)
     {
+        // $decimals = '1000000000';
         // Pad the amount with leading zeros to ensure it's at least $decimals + 1 digits long
         $new_amount = str_pad($amount, $decimals + 1, '0', STR_PAD_LEFT);
 
