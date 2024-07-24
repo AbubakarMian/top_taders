@@ -37,7 +37,9 @@ class ApiSolScan
                 $json_res['tokenAmount']['tokenSymbolName'] = $json_res['tokenName'] ?? $json_res['tokenSymbol'] ?? ' Sol';
                 $json_res['tokenAmount']['solAmount'] = $this->convert_val_to_coin($json_res['lamports'], 9);
                 $token = $this->getTokenDetails($json_res['tokenAddress']);
-                $json_res['tokenAmount']['usdAmount'] = bcmul($json_res['tokenAmount']['uiAmount'], $token['price'] ?? 0);
+                $token_price = $token['price'] ?? 0;
+                $token_price = $this->scientificToString($token_price);
+                $json_res['tokenAmount']['usdAmount'] = bcmul($json_res['tokenAmount']['uiAmount'], $token_price);
                 $token_transfer_details = $this->getTokenTransferDetailsApi($walletAddress, $json_res['tokenAddress'], $days);
                 $json_res['tokenAmount'] = array_merge($json_res['tokenAmount'], $token_transfer_details);
                 $json_res_arr[] = $json_res;
@@ -48,7 +50,15 @@ class ApiSolScan
         curl_close($curl);
         return $json_res_arr;
     }
-
+    function scientificToString($number) {
+        if (stripos($number, 'e') !== false) {
+            $parts = explode('e', strtolower($number));
+            $base = $parts[0];
+            $exponent = (int) $parts[1];
+            return bcmul($base, bcpow('10', $exponent, abs($exponent)));
+        }
+        return $number;
+    }
     function calculateROIWinRateOfToken($walletAddress, $transactions, $days) {
         $totalReceived = 0;
         $totalSent = 0;
@@ -67,6 +77,9 @@ class ApiSolScan
             
         $response =  $this->getTransactionalDetailFromSignatureApi($transaction['txHash']);
         $transaction_detail = json_decode($response,true);
+        if(!is_array($transaction_detail)){
+            $transaction_detail = [];
+        }
         // $transaction_details = $this->processTransactionData($response);
         // $winrate_roi = $this->calculate_Winrate_ROI($response);
         // $roi = $winrate_roi['roi'];
@@ -123,7 +136,7 @@ class ApiSolScan
     {
 
         $solscan_key = $this->solscan_key;
-        $url = "https://pro-api.solscan.io/v1.0/token/transfer?address=$walletAddress&tokenAddress=$tokenAddress&limit=50&offset=0";
+        $url = "https://pro-api.solscan.io/v1.0/token/transfer?address=$walletAddress&tokenAddress=$tokenAddress&limit=10&offset=0";
         $curl = curl_init();
         $token = "token: $solscan_key";
         curl_setopt_array($curl, array(

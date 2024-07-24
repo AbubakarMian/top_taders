@@ -5,7 +5,7 @@ use Telegram\Telegram;
 
 $response = new \stdClass();
 $solScan = new ApiSolScan();
-$days = $_GET['days'] ?? 500;
+$days = $_GET['days'] ?? 30;
 $response->all_token_details = $solScan->getAccountTokens($_GET['wallet_address'],$days);
 $response->assosiative_wallets = $solScan->getWalletTransfers($_GET['wallet_address'], $days);
 if (isset($response->assosiative_wallets['transactional_details']['aggrigate_result'])) {
