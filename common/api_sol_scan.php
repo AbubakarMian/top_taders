@@ -35,9 +35,9 @@ class ApiSolScan
             foreach ($data as $key => $json_res) {
                 // $json_res = $data[0];
                 $json_res['tokenAmount']['tokenSymbolName'] = $json_res['tokenName'] ?? $json_res['tokenSymbol'] ?? ' Sol';
-                $json_res['solAmount'] = $this->convert_val_to_coin($json_res['lamports'], 9);
+                $json_res['tokenAmount']['solAmount'] = $this->convert_val_to_coin($json_res['lamports'], 9);
                 $token = $this->getTokenDetails($json_res['tokenAddress']);
-                $json_res['usdAmount'] = bcmul($json_res['tokenAmount']['uiAmount'], $token['price'] ?? 0);
+                $json_res['tokenAmount']['usdAmount'] = bcmul($json_res['tokenAmount']['uiAmount'], $token['price'] ?? 0);
                 $token_transfer_details = $this->getTokenTransferDetailsApi($walletAddress, $json_res['tokenAddress'], $days);
                 $json_res['tokenAmount'] = array_merge($json_res['tokenAmount'], $token_transfer_details);
                 $json_res_arr[] = $json_res;
