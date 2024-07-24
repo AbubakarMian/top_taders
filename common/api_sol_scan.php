@@ -5,7 +5,7 @@ class ApiSolScan
 {
     public $solscan_key = SOLSCAN_KEY;
 
-    function getWalletAdressDetails($walletAddress)
+    function getWalletAdressDetails($walletAddress,$days)
     {
 
         $solscan_key = $this->solscan_key;
@@ -29,27 +29,147 @@ class ApiSolScan
 
         $response = curl_exec($curl);
 
+        $data = json_decode($response, true);
+        $json_res_arr = [];
+        if (isset($data[0])) {
+            foreach ($data as $key => $json_res) {
+                // $json_res = $data[0];
+                $json_res['tokenAmount']['tokenSymbolName'] = $json_res['tokenName'] ?? $json_res['tokenSymbol'] ?? ' Sol';
+                $json_res['solAmount'] = $this->convert_val_to_coin($json_res['lamports'], 9);
+                $token = $this->getTokenDetails($json_res['tokenAddress']);
+                $json_res['usdAmount'] = bcmul($json_res['tokenAmount']['uiAmount'], $token['price'] ?? 0);
+                $token_transfer_details = $this->getTokenTransferDetailsApi($walletAddress, $json_res['tokenAddress'], $days);
+                $json_res['tokenAmount'] = array_merge($json_res['tokenAmount'], $token_transfer_details);
+                $json_res_arr[] = $json_res;
+            }
+        } else {
+            $json_res_arr = [];
+        }
         curl_close($curl);
-        return $response;
+        return $json_res_arr;
     }
 
-    function getAccountTokens($walletAddress)
+    function calculateROIWinRateOfToken($walletAddress, $transactions, $days) {
+        $totalReceived = 0;
+        $totalSent = 0;
+        $profitTrades = 0;
+        $totalTrades = 0;
+        $now = time();
+        $days_ago = $now - ($days * 24 * 60 * 60);
+    // die(json_encode($transactions));
+        $filtered_items = array_filter($transactions['items'], function($item) use ($days_ago) {
+            return $item['blockTime'] >= $days_ago;
+        });
+    
+        foreach ($filtered_items as $transaction) {
+            // $transaction_detail = $this->getTransactionDetails($transaction['txHash']);
+
+            
+        $response =  $this->getTransactionalDetailFromSignatureApi($transaction['txHash']);
+        $transaction_detail = json_decode($response,true);
+        // $transaction_details = $this->processTransactionData($response);
+        // $winrate_roi = $this->calculate_Winrate_ROI($response);
+        // $roi = $winrate_roi['roi'];
+        // $win_rate = $winrate_roi['win_rate'];
+        // $profit = $winrate_roi['profit'];
+        // return [
+        //     'transaction_details' => $transaction_details,
+        //     'roi' => $roi,
+        //     'win_rate' => $win_rate,
+        //     'profit' => $profit,
+        // ];
+
+        if(!isset($transaction_detail['inputAccount'])){
+            $transaction_detail['inputAccount'] = [];
+        }
+
+            foreach ($transaction_detail['inputAccount'] as $account) {
+                if ($account['account'] === $walletAddress) {
+                    $preBalance = $account['preBalance'];
+                    $postBalance = $account['postBalance'];
+                    $amountChange = $postBalance - $preBalance;
+    
+                    if ($amountChange > 0) {
+                        // Incoming transaction (received)
+                        $totalReceived += $amountChange;
+                        $totalTrades++;
+                    } elseif ($amountChange < 0) {
+                        // Outgoing transaction (sent)
+                        $totalSent += abs($amountChange);
+                        $totalTrades++;
+    
+                        // Determine if the trade was profitable
+                        if ($totalReceived >= abs($amountChange)) {
+                            $profitTrades++;
+                        }
+                    }
+                }
+            }
+        }
+    
+        $netProfit = $totalReceived - $totalSent;
+        $roi = ($totalSent > 0) ? ($netProfit / $totalSent) * 100 : 0;
+        $winRate = ($totalTrades > 0) ? ($profitTrades / $totalTrades) * 100 : 0;
+        $netProfit = $netProfit  / pow(10, 9); // Assuming lamports, adjust if different
+    
+        return [
+            'roi' => $roi,
+            'win_rate' => $winRate,
+            // 'profit' => $netProfit
+        ];
+    }
+
+    function getTokenTransferDetailsApi($walletAddress, $tokenAddress, $days)
     {
-        $wallet_address_res = $this->getWalletAdressDetails($walletAddress);
+
+        $solscan_key = $this->solscan_key;
+        $url = "https://pro-api.solscan.io/v1.0/token/transfer?address=$walletAddress&tokenAddress=$tokenAddress&limit=50&offset=0";
+        $curl = curl_init();
+        $token = "token: $solscan_key";
+        curl_setopt_array($curl, array(
+            CURLOPT_URL => $url,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_ENCODING => '',
+            CURLOPT_MAXREDIRS => 10,
+            CURLOPT_TIMEOUT => 0,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+            CURLOPT_CUSTOMREQUEST => 'GET',
+            CURLOPT_HTTPHEADER => array(
+                'accept: application/json',
+                $token
+            ),
+        ));
+
+        $response = curl_exec($curl);
+
+        $transactions = json_decode($response, true);
+        $token_report = $this->calculateROIWinRateOfToken($walletAddress, $transactions, $days);
+
+        return $token_report;
+    }
+
+    function getAccountTokens($walletAddress,$days)
+    {
+        $wallet_address_res = $this->getWalletAdressDetails($walletAddress,$days);
+
         // echo $wallet_address_res;
         $response = new \stdClass();
         $total_sol_amount = $this->calculateWalletTotalSolAmount($wallet_address_res);
         $response->address = $walletAddress;
-        $response->token_details = json_decode($wallet_address_res);
+        $response->token_details = $wallet_address_res;
         $response->total_tokens = $total_sol_amount['total_token'];
         // $response->sol_balance = $total_sol_amount['sol_balance'];
         // $response->usd_balance = $this->solToUsd($total_sol_amount['sol_balance']);
         $response->sol_balance = $this->getSolanabalancefromapi($walletAddress);
-        $response->usd_balance = $this->solToUsd($total_sol_amount['sol_balance']);
+        $response->usd_balance = $this->solToUsd($response->sol_balance);
+        // $response->usd_balance = $this->solToUsd($total_sol_amount['sol_balance']);
+        // die($total_sol_amount['sol_balance']);
         return $response;
     }
 
-    function getSolanabalancefromapi($walletAddress){
+    function getSolanabalancefromapi($walletAddress)
+    {
 
         $url = "https://api.mainnet-beta.solana.com";
         $data = [
@@ -58,14 +178,14 @@ class ApiSolScan
             'method' => 'getBalance',
             'params' => [$walletAddress]
         ];
-    
+
         $options = [
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
             CURLOPT_POST => true,
             CURLOPT_POSTFIELDS => json_encode($data)
         ];
-    
+
         $ch = curl_init($url);
         curl_setopt_array($ch, $options);
         $response = curl_exec($ch);
@@ -74,25 +194,74 @@ class ApiSolScan
         }
         curl_close($ch);
 
-    $response_json = json_decode($response, true);
-    $balanceLamports = $response_json['result']['value'];
-    
-    $balanceSol = $balanceLamports / 1000000000; // 1 SOL = 1,000,000,000 lamports
-    return $balanceSol;
-    // echo "Balance: " . $balanceSol . " SOL\n";
+        $response_json = json_decode($response, true);
+        $balanceLamports = $response_json['result']['value'];
 
+        $balanceSol = $balanceLamports / 1000000000; // 1 SOL = 1,000,000,000 lamports
+        return $balanceSol;
+        // echo "Balance: " . $balanceSol . " SOL\n";
+
+    }
+
+    function getTokenDetails($token_address)
+    {
+
+        $solscan_key = $this->solscan_key;
+        $url = "https://pro-api.solscan.io/v1.0/token/meta?tokenAddress=$token_address";
+        $curl = curl_init();
+        $token = "token: $solscan_key";
+        curl_setopt_array($curl, array(
+            CURLOPT_URL => $url,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_ENCODING => '',
+            CURLOPT_MAXREDIRS => 10,
+            CURLOPT_TIMEOUT => 0,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+            CURLOPT_CUSTOMREQUEST => 'GET',
+            CURLOPT_HTTPHEADER => array(
+                'accept: application/json',
+                $token
+            ),
+        ));
+
+        $response = curl_exec($curl);
+        $data = json_decode($response, true);
+
+        // {
+        //     "name": "USDT",
+        //     "symbol": "USDT",
+        //     "icon": "https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB/logo.svg",
+        //     "price": 0.999461,
+        //     "volume": 23258213047,
+        //     "decimals": 6,
+        //     "tokenAuthority": "Q6XprfkF8RQQKoQVG33xT88H7wi8Uk1B1CC7YAs69Gi",
+        //     "supply": "1889938220901133",
+        //     "type": "token_address",
+        //     "address": "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB"
+        //   }
+        return $data;
     }
     function solToUsd($total_sol)
     {
         $rate = $this->getConversionRates();
-        $total_sol = $rate['solana']['usd'] * $total_sol;
+        $total_sol = bcmul($rate['solana']['usd'], $total_sol);
+
         return $total_sol;
     }
 
-    function getWalletTransfers($walletAddress, $limit = 10)
+    function getWalletTransfers($walletAddress, $days = '', $limit = 10)
     {
+        // if(is_int($days)){
+        //     $daysAgo = '&fromTime='.time() - ($days * 24 * 60 * 60);
+        // }
+        // else{
+        //     $daysAgo = '';
+        // }
+        $daysAgo = '&fromTime=' . time() - ($days * 24 * 60 * 60);
         $solscan_key = $this->solscan_key;
-        $url = "https://pro-api.solscan.io/v1.0/account/solTransfers?account=$walletAddress&limit=10";
+        $url = "https://pro-api.solscan.io/v1.0/account/solTransfers?account=$walletAddress" . "$daysAgo&limit=10";
+
         $curl = curl_init();
         $token = "token: $solscan_key";
         curl_setopt_array($curl, array(
@@ -127,6 +296,9 @@ class ApiSolScan
         $transactions_arr = json_decode($transactions, true);
         // $signautures = array_column($transactions_arr['data'], 'txHash');
         $res['wallet'] = [];
+        if (!count($transactions_arr['data'])) {
+            return $res;
+        }
         foreach ($transactions_arr['data'] as $key => $transaction) {
             $transaction_detail = (array) $this->getTransactionDetails($transaction['txHash']); // Ensure it's an array
 
@@ -189,10 +361,12 @@ class ApiSolScan
 
     function calculateWalletTotalSolAmount($json_response)
     {
-        $tokens = json_decode($json_response, true);
+        // $tokens = json_decode($json_response, true);
+        $tokens = $json_response;
         $total_amount_in_sol = 0;
-
+        // die(json_encode($tokens));
         foreach ($tokens as $token) {
+            // die(json_encode($token));
             $token_amount = $token['tokenAmount']['amount']; // Amount of tokens in smallest unit (e.g., 187258267 for CHIPPY)
             $decimals = $token['tokenAmount']['decimals']; // Decimals for this token (e.g., 6 for CHIPPY)
 
@@ -237,8 +411,8 @@ class ApiSolScan
         return $firstPart . '.' . $secondPart;
     }
 
-    function getTransactionDetails($signauture)
-    {
+    function getTransactionalDetailFromSignatureApi($signauture){
+        
         $solscan_key = $this->solscan_key;
         // $url = "https://pro-api.solscan.io/v1.0/account/solTransfers?account=$walletAddress&limit=10";
         $url = "https://pro-api.solscan.io/v1.0/transaction/$signauture";
@@ -262,9 +436,12 @@ class ApiSolScan
         $response = curl_exec($curl);
 
         curl_close($curl);
-        // $response_std = new \stdClass();
+        return $response;
+    }
+    function getTransactionDetails($signauture)
+    {
+        $response =  $this->getTransactionalDetailFromSignatureApi($signauture);
         $transaction_details = $this->processTransactionData($response);
-        // die(json_encode($response_std));
         $winrate_roi = $this->calculate_Winrate_ROI($response);
         $roi = $winrate_roi['roi'];
         $win_rate = $winrate_roi['win_rate'];
@@ -306,6 +483,9 @@ class ApiSolScan
                 }
             }
         } else {
+            // if(!isset($data['solTransfers'] )){
+            //     die(json_encode($data));
+            // }
             foreach ($data['solTransfers'] as $transfer) {
                 $amount = $transfer['amount'];
                 $tokenSymbol = 'SOL';
@@ -368,8 +548,8 @@ class ApiSolScan
     function getConversionRates()
     {
         return [
-            "raydium" => ["usd" => 1.95],
-            "solana" => ["usd" => 159.27]
+            "raydium" => ["usd" => 2.36],
+            "solana" => ["usd" => 176.54]
         ];
         $apiUrl = 'https://api.coingecko.com/api/v3/simple/price?ids=solana,raydium&vs_currencies=usd';
         $response = @file_get_contents($apiUrl);
@@ -377,8 +557,8 @@ class ApiSolScan
             return json_decode($response, true);
         } else {
             return [
-                "raydium" => ["usd" => 1.95],
-                "solana" => ["usd" => 159.27]
+                "raydium" => ["usd" => 2.36],
+                "solana" => ["usd" => 176.54]
             ];
         }
     }

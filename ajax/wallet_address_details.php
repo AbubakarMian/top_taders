@@ -5,20 +5,27 @@ use Telegram\Telegram;
 
 $response = new \stdClass();
 $solScan = new ApiSolScan();
-$response->all_token_details = $solScan->getAccountTokens($_GET['wallet_address']);
-$response->assosiative_wallets = $solScan->getWalletTransfers($_GET['wallet_address']);
-$aggrigate_result = $response->assosiative_wallets['transactional_details']['aggrigate_result'];
-$response->all_token_details->roi = $aggrigate_result['roi'];
-$response->all_token_details->win_rate = $aggrigate_result['win_rate'];
-$response->all_token_details->profit = $aggrigate_result['profit'];
+$days = $_GET['days'] ?? 500;
+$response->all_token_details = $solScan->getAccountTokens($_GET['wallet_address'],$days);
+$response->assosiative_wallets = $solScan->getWalletTransfers($_GET['wallet_address'], $days);
+if (isset($response->assosiative_wallets['transactional_details']['aggrigate_result'])) {
+    $aggrigate_result = $response->assosiative_wallets['transactional_details']['aggrigate_result'];
+    $response->all_token_details->roi = $aggrigate_result['roi'];
+    $response->all_token_details->win_rate = $aggrigate_result['win_rate'];
+    $response->all_token_details->profit = $aggrigate_result['profit'];
+} else {
+    $response->all_token_details->roi = 0;
+    $response->all_token_details->win_rate = 0;
+    $response->all_token_details->profit = 0;
+}
 echo json_encode($response);
 return;
 return $transfers;
-$transfers_json = json_decode($transfers,true);
-$message = 'Unique Tokens : Total '.count($transfers_json)." \n ";
+$transfers_json = json_decode($transfers, true);
+$message = 'Unique Tokens : Total ' . count($transfers_json) . " \n ";
 foreach ($transfers_json as $key => $transfer) {
-    $message .= " 💰Account ".$transfer['tokenAccount']." \n ";
-    $message .= " 💲Balance ".$transfer['tokenAmount']['uiAmountString'].' '.$transfer['tokenSymbol']." \n ";
+    $message .= " 💰Account " . $transfer['tokenAccount'] . " \n ";
+    $message .= " 💲Balance " . $transfer['tokenAmount']['uiAmountString'] . ' ' . $transfer['tokenSymbol'] . " \n ";
 }
 // $apiToken = TELEGRAM_KEY;
 
