@@ -359,9 +359,9 @@ class ApiSolScan
         foreach ($transactions_arr['data'] as $key => $transaction) {
             $sig = $transaction['signature'][0] ?? '';
             $transaction_detail = (array) $this->getTransactionDetails($sig); // Ensure it's an array
-
+    
             if (isset($res['wallet'][$transaction['src']])) {
-                $res['wallet'][$transaction['src']] = (array) $res['wallet'][$transaction['src']]; // Ensure it's an array
+                $res['wallet'][$transaction['src']] = (array) $res['wallet']['tokenAddress'];//[$transaction['src']]; // Ensure it's an array
                 $res['wallet'][$transaction['src']]['roi'] += $transaction_detail['roi'];
                 $res['wallet'][$transaction['src']]['win_rate'] += $transaction_detail['win_rate'];
                 $res['wallet'][$transaction['src']]['profit'] += $transaction_detail['profit'];
@@ -391,6 +391,9 @@ class ApiSolScan
         $total_profit = 0;
         $total_transactions = 0;
         foreach ($res['wallet'][$transaction['src']] as $key => $value) {
+            if(!isset($res['wallet'][$transaction['src']]['total_roi'])){
+                break
+            }
             $total_roi += $res['wallet'][$transaction['src']]['total_roi'];
             $total_win_rate += $res['wallet'][$transaction['src']]['total_win_rate'];
             $total_profit += $res['wallet'][$transaction['src']]['total_profit'];
