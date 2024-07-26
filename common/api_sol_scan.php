@@ -304,6 +304,48 @@ class ApiSolScan
             'assosiative_wallets' => $assosiative_wallets,
         ];
     }
+
+    
+    function getSplTransfers($walletAddress, $days = '', $limit = 10){
+        // if(is_int($days)){
+        //     $daysAgo = '&fromTime='.time() - ($days * 24 * 60 * 60);
+        // }
+        // else{
+        //     $daysAgo = '';
+        // }
+        $daysAgo = '&fromTime=' . time() - ($days * 24 * 60 * 60);
+        $solscan_key = $this->solscan_key;
+        $url = "https://pro-api.solscan.io/v1.0/account/splTransfers?account=$walletAddress" . "$daysAgo&limit=10";
+
+        $curl = curl_init();
+        $token = "token: $solscan_key";
+        curl_setopt_array($curl, array(
+            CURLOPT_URL => $url,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_ENCODING => '',
+            CURLOPT_MAXREDIRS => 10,
+            CURLOPT_TIMEOUT => 0,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+            CURLOPT_CUSTOMREQUEST => 'GET',
+            CURLOPT_HTTPHEADER => array(
+                'accept: application/json',
+                $token
+            ),
+        ));
+
+        $response = curl_exec($curl);
+
+        $getTransactionalDetails = $this->getTransactionalDetails($response);
+        $assosiative_wallets = $this->getAssociativeWallets($response);
+
+        curl_close($curl);
+        // $response = $this->addTransferredAmount($response, $walletAddress);
+        return [
+            'transactional_details' => $getTransactionalDetails,
+            'assosiative_wallets' => $assosiative_wallets,
+        ];
+    }
     function getTransactionalDetails($transactions)
     {
         $transactions_arr = json_decode($transactions, true);
