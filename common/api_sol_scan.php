@@ -4,8 +4,8 @@ include('../enums.php');
 class ApiSolScan
 {
     public $solscan_key = SOLSCAN_KEY;
- 
-    function getWalletAdressDetails($walletAddress,$days)
+
+    function getWalletAdressDetails($walletAddress, $days)
     {
 
         $solscan_key = $this->solscan_key;
@@ -39,7 +39,7 @@ class ApiSolScan
                 $token = $this->getTokenDetails($json_res['tokenAddress']);
                 $token_price = $token['price'] ?? 0;
                 $token_price = $this->scientificToString($token_price);
-                $json_res['tokenAmount']['usdAmount'] = bcmul($json_res['tokenAmount']['uiAmount'], $token_price);
+                $json_res['tokenAmount']['usdAmount'] = bcmul(round($json_res['tokenAmount']['uiAmount'],5), $token_price);
                 $token_transfer_details = $this->getTokenTransferDetailsApi($walletAddress, $json_res['tokenAddress'], $days);
                 $json_res['tokenAmount'] = array_merge($json_res['tokenAmount'], $token_transfer_details);
                 $json_res_arr[] = $json_res;
@@ -50,7 +50,8 @@ class ApiSolScan
         curl_close($curl);
         return $json_res_arr;
     }
-    function scientificToString($number) {
+    function scientificToString($number)
+    {
         if (stripos($number, 'e') !== false) {
             $parts = explode('e', strtolower($number));
             $base = $parts[0];
@@ -59,49 +60,38 @@ class ApiSolScan
         }
         return $number;
     }
-    function calculateROIWinRateOfToken($walletAddress, $transactions, $days) {
+    function calculateROIWinRateOfToken($walletAddress, $transactions, $days)
+    {
         $totalReceived = 0;
         $totalSent = 0;
         $profitTrades = 0;
         $totalTrades = 0;
         $now = time();
         $days_ago = $now - ($days * 24 * 60 * 60);
-    // die(json_encode($transactions));
-        $filtered_items = array_filter($transactions['items'], function($item) use ($days_ago) {
+        $filtered_items = array_filter($transactions['items'], function ($item) use ($days_ago) {
             return $item['blockTime'] >= $days_ago;
         });
-    
+
         foreach ($filtered_items as $transaction) {
             // $transaction_detail = $this->getTransactionDetails($transaction['txHash']);
 
-            
-        $response =  $this->getTransactionalDetailFromSignatureApi($transaction['txHash']);
-        $transaction_detail = json_decode($response,true);
-        if(!is_array($transaction_detail)){
-            $transaction_detail = [];
-        }
-        // $transaction_details = $this->processTransactionData($response);
-        // $winrate_roi = $this->calculate_Winrate_ROI($response);
-        // $roi = $winrate_roi['roi'];
-        // $win_rate = $winrate_roi['win_rate'];
-        // $profit = $winrate_roi['profit'];
-        // return [
-        //     'transaction_details' => $transaction_details,
-        //     'roi' => $roi,
-        //     'win_rate' => $win_rate,
-        //     'profit' => $profit,
-        // ];
 
-        if(!isset($transaction_detail['inputAccount'])){
-            $transaction_detail['inputAccount'] = [];
-        }
+            $response =  $this->getTransactionalDetailFromSignatureApi($transaction['txHash']);
+            $transaction_detail = json_decode($response, true);
+            if (!is_array($transaction_detail)) {
+                $transaction_detail = [];
+            }
+
+            if (!isset($transaction_detail['inputAccount'])) {
+                $transaction_detail['inputAccount'] = [];
+            }
 
             foreach ($transaction_detail['inputAccount'] as $account) {
                 if ($account['account'] === $walletAddress) {
                     $preBalance = $account['preBalance'];
                     $postBalance = $account['postBalance'];
                     $amountChange = $postBalance - $preBalance;
-    
+
                     if ($amountChange > 0) {
                         // Incoming transaction (received)
                         $totalReceived += $amountChange;
@@ -110,7 +100,7 @@ class ApiSolScan
                         // Outgoing transaction (sent)
                         $totalSent += abs($amountChange);
                         $totalTrades++;
-    
+
                         // Determine if the trade was profitable
                         if ($totalReceived >= abs($amountChange)) {
                             $profitTrades++;
@@ -119,12 +109,12 @@ class ApiSolScan
                 }
             }
         }
-    
+
         $netProfit = $totalReceived - $totalSent;
         $roi = ($totalSent > 0) ? ($netProfit / $totalSent) * 100 : 0;
         $winRate = ($totalTrades > 0) ? ($profitTrades / $totalTrades) * 100 : 0;
         $netProfit = $netProfit  / pow(10, 9); // Assuming lamports, adjust if different
-    
+
         return [
             'roi' => $roi,
             'win_rate' => $winRate,
@@ -162,9 +152,9 @@ class ApiSolScan
         return $token_report;
     }
 
-    function getAccountTokens($walletAddress,$days)
+    function getAccountTokens($walletAddress, $days)
     {
-        $wallet_address_res = $this->getWalletAdressDetails($walletAddress,$days);
+        $wallet_address_res = $this->getWalletAdressDetails($walletAddress, $days);
 
         // echo $wallet_address_res;
         $response = new \stdClass();
@@ -177,7 +167,6 @@ class ApiSolScan
         $response->sol_balance = $this->getSolanabalancefromapi($walletAddress);
         $response->usd_balance = $this->solToUsd($response->sol_balance);
         // $response->usd_balance = $this->solToUsd($total_sol_amount['sol_balance']);
-        // die($total_sol_amount['sol_balance']);
         return $response;
     }
 
@@ -305,8 +294,9 @@ class ApiSolScan
         ];
     }
 
-    
-    function getSplTransfers($walletAddress, $days = '', $limit = 10){
+
+    function getSplTransfers($walletAddress, $days = '', $limit = 10)
+    {
         // if(is_int($days)){
         //     $daysAgo = '&fromTime='.time() - ($days * 24 * 60 * 60);
         // }
@@ -347,66 +337,119 @@ class ApiSolScan
         ];
     }
 
+    function calculate_SPL_transactionDetails($transaction)
+    {
+        $totalInvestment = '0';
+        $totalProfit = '0';
+        $totalROI = '0';
+        $totalWins = 0;
+        $totalTrades = 0;
+
+        $changeType = $transaction['changeType'];
+        $changeAmount = bcdiv($transaction['changeAmount'], bcpow('10', $transaction['decimals'])); // Convert to actual amount
+        $fee = bcdiv($transaction['fee'], bcpow('10', $transaction['decimals'])); // Convert fee to actual amount
+        $preBalance = bcdiv($transaction['preBalance'], bcpow('10', $transaction['decimals'])); // Convert to actual amount
+        $postBalance = bcdiv($transaction['postBalance'], bcpow('10', $transaction['decimals'])); // Convert to actual amount
+
+        if ($changeType == 'inc') {
+            $investment = $preBalance; // Total investment in tokens
+            $totalInvestment = bcadd($totalInvestment, $investment);
+            $totalTrades++;
+        } elseif ($changeType == 'dec') {
+            $profit = bcsub(bcsub($postBalance, $preBalance), $fee); // Calculate profit
+            $totalProfit = bcadd($totalProfit, $profit);
+            $totalTrades++;
+
+            if (bccomp($profit, '0') > 0) {
+                $totalWins++;
+            }
+        }
+
+        // Calculate ROI
+        if (bccomp($totalInvestment, '0') > 0) {
+            $totalROI = bcmul(bcdiv($totalProfit, $totalInvestment), '100');
+        }
+
+        // Calculate Win Rate
+        $winRate = bcmul(bcdiv($totalWins, $totalTrades), '100');
+
+        return [
+            'src' => $transaction['owner'],
+            'roi' => $totalROI,
+            'win_rate' => $winRate,
+            'profit' => $totalProfit,
+        ];
+    }
 
     function getSplTransactionalDetails($transactions)
     {
         $transactions_arr = json_decode($transactions, true);
-        // $signautures = array_column($transactions_arr['data'], 'txHash');
         $res['wallet'] = [];
+
         if (!count($transactions_arr['data'])) {
             return $res;
         }
-        foreach ($transactions_arr['data'] as $key => $transaction) {
-            $sig = $transaction['signature'][0] ?? '';
-            $transaction_detail = (array) $this->getTransactionDetails($sig); // Ensure it's an array
-    
-            if (isset($res['wallet'][$transaction['src']])) {
-                $res['wallet'][$transaction['src']] = (array) $res['wallet']['tokenAddress'];//[$transaction['src']]; // Ensure it's an array
-                $res['wallet'][$transaction['src']]['roi'] += $transaction_detail['roi'];
-                $res['wallet'][$transaction['src']]['win_rate'] += $transaction_detail['win_rate'];
-                $res['wallet'][$transaction['src']]['profit'] += $transaction_detail['profit'];
-            } else {
-                $res['wallet'][$transaction['src']] = [
-                    'wallet_address' => $transaction['src'],
-                    'roi' => $transaction_detail['roi'],
-                    'win_rate' => $transaction_detail['win_rate'],
-                    'profit' => $transaction_detail['profit'],
-                    'total_roi' => 0,
-                    'total_win_rate' => 0,
-                    'total_profit' => 0,
+
+        foreach ($transactions_arr['data'] as $transaction) {
+            $transaction_detail = $this->calculate_SPL_transactionDetails($transaction);
+
+            $src = $transaction['owner'];
+
+            if (!isset($res['wallet'][$src])) {
+                $res['wallet'][$src] = [
+                    'wallet_address' => $src,
+                    'roi' => '0',
+                    'win_rate' => '0',
+                    'profit' => '0',
+                    'total_roi' => '0',
+                    'total_win_rate' => '0',
+                    'total_profit' => '0',
                     'total_transactions' => 0,
+                    'total_wins' => 0,
+                    'total_trades' => 0,
                 ];
             }
 
-            // Remove die and debugging to allow code to continue execution
-            // die(json_encode((array) $res['wallet'][$transaction['src']])); // Ensure it's an array
+            $res['wallet'][$src]['total_roi'] = bcadd($res['wallet'][$src]['total_roi'], $transaction_detail['roi']);
+            $res['wallet'][$src]['total_win_rate'] = bcadd($res['wallet'][$src]['total_win_rate'], $transaction_detail['win_rate']);
+            $res['wallet'][$src]['total_profit'] = bcadd($res['wallet'][$src]['total_profit'], $transaction_detail['profit']);
+            $res['wallet'][$src]['total_transactions']++;
 
-            $res['wallet'][$transaction['src']]['total_roi'] = ($res['wallet'][$transaction['src']]['total_roi'] + $transaction_detail['roi']) / 2;
-            $res['wallet'][$transaction['src']]['total_win_rate'] = ($res['wallet'][$transaction['src']]['total_win_rate'] + $transaction_detail['win_rate']) / 2;
-            $res['wallet'][$transaction['src']]['total_profit'] += $transaction_detail['profit'];
-            $res['wallet'][$transaction['src']]['total_transactions']++;
-        }
-        $total_roi = 0;
-        $total_win_rate = 0;
-        $total_profit = 0;
-        $total_transactions = 0;
-        foreach ($res['wallet'][$transaction['src']] as $key => $value) {
-            if(!isset($res['wallet'][$transaction['src']]['total_roi'])){
-                break
+            if ($transaction_detail['win_rate'] > 0) {
+                $res['wallet'][$src]['total_wins']++;
             }
-            $total_roi += $res['wallet'][$transaction['src']]['total_roi'];
-            $total_win_rate += $res['wallet'][$transaction['src']]['total_win_rate'];
-            $total_profit += $res['wallet'][$transaction['src']]['total_profit'];
-            $total_transactions++;
-        }
-        $res['aggrigate_result']['roi'] = round($total_roi / $total_transactions, 5);
-        $res['aggrigate_result']['win_rate'] = round($total_win_rate / $total_transactions, 5);
-        $res['aggrigate_result']['profit'] = number_format(round($total_profit, 5), 5); // Total profit is already summed up
 
-        // die(json_encode($res));
-        // die(json_encode($res['wallet'][$transaction['src']]));
+            $res['wallet'][$src]['total_trades']++;
+        }
+
+        $total_roi = '0';
+        $total_win_rate = '0';
+        $total_profit = '0';
+        $total_transactions = 0;
+        $total_wins = 0;
+        $total_trades = 0;
+
+        foreach ($res['wallet'] as $src => $details) {
+            $total_roi = bcadd($total_roi, $details['total_roi']);
+            $total_profit = bcadd($total_profit, $details['total_profit']);
+            $total_transactions += $details['total_transactions'];
+            $total_wins += $details['total_wins'];
+            $total_trades += $details['total_trades'];
+        }
+
+        $aggregate_roi = $total_transactions > 0 ? round(bcdiv($total_roi, $total_transactions, 5), 5) : '0';
+        $aggregate_win_rate = $total_trades > 0 ? round(bcdiv($total_wins, $total_trades, 5) * 100, 5) : '0';
+        $aggregate_profit = number_format(round($total_profit, 5), 5);
+
+        $res['aggregate_result'] = [
+            'roi' => $aggregate_roi,
+            'win_rate' => $aggregate_win_rate,
+            'profit' => $aggregate_profit,
+        ];
+
         return $res;
     }
+
     function getTransactionalDetails($transactions)
     {
         $transactions_arr = json_decode($transactions, true);
@@ -436,9 +479,6 @@ class ApiSolScan
                 ];
             }
 
-            // Remove die and debugging to allow code to continue execution
-            // die(json_encode((array) $res['wallet'][$transaction['src']])); // Ensure it's an array
-
             $res['wallet'][$transaction['src']]['total_roi'] = ($res['wallet'][$transaction['src']]['total_roi'] + $transaction_detail['roi']) / 2;
             $res['wallet'][$transaction['src']]['total_win_rate'] = ($res['wallet'][$transaction['src']]['total_win_rate'] + $transaction_detail['win_rate']) / 2;
             $res['wallet'][$transaction['src']]['total_profit'] += $transaction_detail['profit'];
@@ -458,8 +498,6 @@ class ApiSolScan
         $res['aggrigate_result']['win_rate'] = round($total_win_rate / $total_transactions, 5);
         $res['aggrigate_result']['profit'] = number_format(round($total_profit, 5), 5); // Total profit is already summed up
 
-        // die(json_encode($res));
-        // die(json_encode($res['wallet'][$transaction['src']]));
         return $res;
     }
 
@@ -480,9 +518,7 @@ class ApiSolScan
         // $tokens = json_decode($json_response, true);
         $tokens = $json_response;
         $total_amount_in_sol = 0;
-        // die(json_encode($tokens));
         foreach ($tokens as $token) {
-            // die(json_encode($token));
             $token_amount = $token['tokenAmount']['amount']; // Amount of tokens in smallest unit (e.g., 187258267 for CHIPPY)
             $decimals = $token['tokenAmount']['decimals']; // Decimals for this token (e.g., 6 for CHIPPY)
 
@@ -527,8 +563,9 @@ class ApiSolScan
         return $firstPart . '.' . $secondPart;
     }
 
-    function getTransactionalDetailFromSignatureApi($signauture){
-        
+    function getTransactionalDetailFromSignatureApi($signauture)
+    {
+
         $solscan_key = $this->solscan_key;
         // $url = "https://pro-api.solscan.io/v1.0/account/solTransfers?account=$walletAddress&limit=10";
         $url = "https://pro-api.solscan.io/v1.0/transaction/$signauture";
@@ -580,8 +617,6 @@ class ApiSolScan
                 $swap = $transaction['swap'];
                 foreach ($swap['event'] as $event) {
                     $amount = $event['amount'];
-                    // if(!isset($event['symbol']))
-                    // die(json_encode($event));
                     $tokenSymbol = $event['symbol'] ?? 'SOL';
                     $tokenDecimals = $event['decimals'] ?? 9;
                     $tokenIcon = $event['icon'] ?? '';
@@ -599,9 +634,6 @@ class ApiSolScan
                 }
             }
         } else {
-            // if(!isset($data['solTransfers'] )){
-            //     die(json_encode($data));
-            // }
             foreach ($data['solTransfers'] as $transfer) {
                 $amount = $transfer['amount'];
                 $tokenSymbol = 'SOL';
