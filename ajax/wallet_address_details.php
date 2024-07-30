@@ -6,8 +6,11 @@ use Telegram\Telegram;
 $response = new \stdClass();
 $solScan = new ApiSolScan();
 $days = $_GET['days'] ?? 30;
+$is_spl = $_GET['spl'] ?? 0;
 $response->all_token_details = $solScan->getAccountTokens($_GET['wallet_address'],$days);
-$response->all_spltoken_details = $solScan->getSplWalletAdressDetails($_GET['wallet_address'],$days);
+if($is_spl){
+    $response->all_spltoken_details = $solScan->getSplWalletAdressDetails($_GET['wallet_address'],$days);
+}
 
 $response->assosiative_wallets = $solScan->getWalletTransfers($_GET['wallet_address'], $days);
 // $response->assosiative_wallets_spl = $solScan->getSplTransfers($_GET['wallet_address'], $days);
