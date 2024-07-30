@@ -7,8 +7,9 @@ $response = new \stdClass();
 $solScan = new ApiSolScan();
 $days = $_GET['days'] ?? 30;
 $response->all_token_details = $solScan->getAccountTokens($_GET['wallet_address'],$days);
+$response->all_spltoken_details = $solScan->getSplWalletAdressDetails($_GET['wallet_address'],$days);
+
 $response->assosiative_wallets = $solScan->getWalletTransfers($_GET['wallet_address'], $days);
-// echo "getWalletTransfers <br/>".json_encode($response->assosiative_wallets);
 $response->assosiative_wallets_spl = $solScan->getSplTransfers($_GET['wallet_address'], $days);
 // echo "getSplTransfers <br/>".json_encode($response->assosiative_wallets_spl);die();
 if (isset($response->assosiative_wallets['transactional_details']['aggrigate_result'])) {

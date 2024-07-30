@@ -39,7 +39,7 @@ class ApiSolScan
                 $token = $this->getTokenDetails($json_res['tokenAddress']);
                 $token_price = $token['price'] ?? 0;
                 $token_price = $this->scientificToString($token_price);
-                $json_res['tokenAmount']['usdAmount'] = bcmul(round($json_res['tokenAmount']['uiAmount'],5), $token_price);
+                $json_res['tokenAmount']['usdAmount'] = bcmul(round($json_res['tokenAmount']['uiAmount'], 5), $token_price);
                 $token_transfer_details = $this->getTokenTransferDetailsApi($walletAddress, $json_res['tokenAddress'], $days);
                 $json_res['tokenAmount'] = array_merge($json_res['tokenAmount'], $token_transfer_details);
                 $json_res_arr[] = $json_res;
@@ -48,19 +48,12 @@ class ApiSolScan
             $json_res_arr = [];
         }
         curl_close($curl);
+
+
         return $json_res_arr;
     }
-    function scientificToString($number)
-    {
-        if (stripos($number, 'e') !== false) {
-            $parts = explode('e', strtolower($number));
-            $base = $parts[0];
-            $exponent = (int) $parts[1];
-            return bcmul($base, bcpow('10', $exponent, abs($exponent)));
-        }
-        return $number;
-    }
-    function calculateROIWinRateOfToken($walletAddress, $transactions, $days)
+
+    function calculateSplROIWinRateOfToken($walletAddress, $transactions, $days)
     {
         $totalReceived = 0;
         $totalSent = 0;
@@ -114,6 +107,80 @@ class ApiSolScan
         $roi = ($totalSent > 0) ? ($netProfit / $totalSent) * 100 : 0;
         $winRate = ($totalTrades > 0) ? ($profitTrades / $totalTrades) * 100 : 0;
         $netProfit = $netProfit  / pow(10, 9); // Assuming lamports, adjust if different
+
+        return [
+            'roi' => $roi,
+            'win_rate' => $winRate,
+            // 'profit' => $netProfit
+        ];
+    }
+
+    function scientificToString($number)
+    {
+        if (stripos($number, 'e') !== false) {
+            $parts = explode('e', strtolower($number));
+            $base = $parts[0];
+            $exponent = (int) $parts[1];
+            return bcmul($base, bcpow('10', $exponent, abs($exponent)));
+        }
+        return $number;
+    }
+    function calculateROIWinRateOfToken($walletAddress, $transactions, $days)
+    {
+        $totalReceived = 0;
+        $totalSent = 0;
+        $profitTrades = 0;
+        $totalTrades = 0;
+        $now = time();
+        $days_ago = $now - ($days * 24 * 60 * 60);
+        $filtered_items = array_filter($transactions['items'], function ($item) use ($days_ago) {
+            return $item['blockTime'] >= $days_ago;
+        });
+
+        foreach ($filtered_items as $transaction) {
+            // $transaction_detail = $this->getTransactionDetails($transaction['txHash']);
+
+
+            $response =  $this->getTransactionalDetailFromSignatureApi($transaction['txHash']);
+            $transaction_detail = json_decode($response, true);
+            if (!is_array($transaction_detail)) {
+                $transaction_detail = [];
+            }
+
+            if (!isset($transaction_detail['inputAccount'])) {
+                $transaction_detail['inputAccount'] = [];
+            }
+
+            foreach ($transaction_detail['inputAccount'] as $account) {
+                // if ($account['account'] === $walletAddress) {
+                    $preBalance = $account['preBalance'];
+                    $postBalance = $account['postBalance'];
+                    $amountChange = $postBalance - $preBalance;
+
+                    if ($amountChange > 0) {
+                        // Incoming transaction (received)
+                        $totalReceived += $amountChange;
+                        $totalTrades++;
+                    } elseif ($amountChange < 0) {
+                        // Outgoing transaction (sent)
+                        $totalSent += abs($amountChange);
+                        $totalTrades++;
+
+                        // Determine if the trade was profitable
+                        if ($totalReceived >= abs($amountChange)) {
+                            $profitTrades++;
+                        }
+                    }
+                // }
+            }
+            
+        }
+
+        $netProfit = $totalReceived - $totalSent;
+        $roi = ($totalSent > 0) ? ($netProfit / $totalSent) * 100 : 0;
+        $winRate = ($totalTrades > 0) ? ($profitTrades / $totalTrades) * 100 : 0;
+        // $netProfit = $netProfit  / pow(10, 9); // Assuming lamports, adjust if different
+
 
         return [
             'roi' => $roi,
@@ -294,8 +361,74 @@ class ApiSolScan
         ];
     }
 
+    function getSplWalletAdressDetails($walletAddress, $days = '', $limit = 10)
+    {
+        $daysAgo = '&fromTime=' . time() - ($days * 24 * 60 * 60);
+        $solscan_key = $this->solscan_key;
+        $url = "https://pro-api.solscan.io/v1.0/account/splTransfers?account=$walletAddress" . "$daysAgo&limit=$limit";
 
-    function getSplTransfers($walletAddress, $days = '', $limit = 10)
+        $curl = curl_init();
+        $token = "token: $solscan_key";
+        curl_setopt_array($curl, array(
+            CURLOPT_URL => $url,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_ENCODING => '',
+            CURLOPT_MAXREDIRS => 10,
+            CURLOPT_TIMEOUT => 0,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+            CURLOPT_CUSTOMREQUEST => 'GET',
+            CURLOPT_HTTPHEADER => array(
+                'accept: application/json',
+                $token
+            ),
+        ));
+
+        $response = curl_exec($curl);
+
+        $json_spl_wallet_details = json_decode($response, true);
+        $settingSplArra = [];
+        $unique_tokens = [];
+
+        foreach ($json_spl_wallet_details['data'] as $key => $json_res) {
+            if (in_array($json_res['tokenAddress'], $unique_tokens)) {
+                continue;
+            }
+            $unique_tokens[] = $json_res['tokenAddress'];
+            $token = $this->getTokenDetails($json_res['tokenAddress']);
+            $token_price = $token['price'] ?? 0;
+            $token_price = $this->scientificToString($token_price);
+            $currentBalance = $json_res['postBalance'];
+            if (is_numeric($currentBalance)) {
+                // Convert the balance from lamports to the correct token value
+                $decimals = $json_res['decimals']; // Assuming 9 decimals for BSAMA
+                $currentBalance = round(bcdiv($currentBalance , round(pow(10, $decimals),5)),2);
+            }
+            else{
+                $currentBalance = 0;
+            }
+
+            // $json_res['usdAmount'] = bcmul($currentBalance, $token_price);
+            $token_transfer_details = $this->getTokenTransferDetailsApi($walletAddress, $json_res['tokenAddress'], $days);
+            
+            $json_res['tokenAmount'] = $currentBalance;
+            $settingSplArra['items'][$key] = [
+                'tokenSymbolName' => ($json_res['tokenName'] ?? $json_res['symbol'] ?? ' Sol'),
+                'blockTime' => $json_res['blockTime'],
+                'txHash' =>   $json_res['signature'][0] ?? '',
+                'usdAmount' => bcmul($currentBalance, $token_price),
+                'tokenAmount' => $currentBalance,
+            ];
+            $settingSplArra['items'][$key] = array_merge(
+                $settingSplArra['items'][$key],
+                $token_transfer_details
+            );
+        }
+
+        return $settingSplArra;
+    }
+
+    function getSplTransfers($walletAddress, $days = '', $limit = 10) // dell
     {
         // if(is_int($days)){
         //     $daysAgo = '&fromTime='.time() - ($days * 24 * 60 * 60);
