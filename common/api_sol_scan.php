@@ -350,13 +350,13 @@ class ApiSolScan
 
         $response = curl_exec($curl);
 
-        $getTransactionalDetails = $this->getTransactionalDetails($response);
+        // $getTransactionalDetails = $this->getTransactionalDetails($response);
         $assosiative_wallets = $this->getAssociativeWallets($response);
 
         curl_close($curl);
         // $response = $this->addTransferredAmount($response, $walletAddress);
         return [
-            'transactional_details' => $getTransactionalDetails,
+            // 'transactional_details' => $getTransactionalDetails,
             'assosiative_wallets' => $assosiative_wallets,
         ];
     }
@@ -414,7 +414,10 @@ class ApiSolScan
             $json_res['tokenAmount'] = $currentBalance;
             $settingSplArra['items'][$key] = [
                 'tokenSymbolName' => ($json_res['tokenName'] ?? $json_res['symbol'] ?? ' Sol'),
+                'symbol' => ($json_res['symbol'] ?? ' Sol'),
+                'name' => ($json_res['tokenName'] ?? ' Sol'),
                 'blockTime' => $json_res['blockTime'],
+                'tokenAddress' => $json_res['tokenAddress'],
                 'txHash' =>   $json_res['signature'][0] ?? '',
                 'usdAmount' => bcmul($currentBalance, $token_price),
                 'tokenAmount' => $currentBalance,
