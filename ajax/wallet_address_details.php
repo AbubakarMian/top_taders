@@ -7,12 +7,26 @@ $response = new \stdClass();
 $solScan = new ApiSolScan();
 $days = $_GET['days'] ?? 30;
 $is_spl = $_GET['spl'] ?? 0;
-$response->all_token_details = $solScan->getAccountTokens($_GET['wallet_address'],$days);
+$has_tokens = $_GET['tokens'] ?? 1;
+$has_assosiative_wallets = $_GET['assosiative_wallets'] ?? 0;
+if($has_tokens){
+    $response->all_token_details = $solScan->getAccountTokens($_GET['wallet_address'],$days);
+}
+else{
+    $response->all_token_details = new \stdClass();
+}
 if($is_spl){
     $response->all_spltoken_details = $solScan->getSplWalletAdressDetails($_GET['wallet_address'],$days);
 }
-
-$response->assosiative_wallets = $solScan->getWalletTransfers($_GET['wallet_address'], $days);
+else{
+    $response->all_spltoken_details = [];
+}
+if($has_assosiative_wallets){
+    $response->assosiative_wallets = $solScan->getWalletTransfers($_GET['wallet_address'], $days);
+}
+else{
+    $response->assosiative_wallets = [];
+}
 // $response->assosiative_wallets_spl = $solScan->getSplTransfers($_GET['wallet_address'], $days);
 // echo "getSplTransfers <br/>".json_encode($response->assosiative_wallets_spl);die();
 if (isset($response->assosiative_wallets['transactional_details']['aggrigate_result'])) {
