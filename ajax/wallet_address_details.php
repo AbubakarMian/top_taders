@@ -10,7 +10,7 @@ $is_spl = $_GET['spl'] ?? 0;
 $has_tokens = $_GET['tokens'] ?? 1;
 $has_assosiative_wallets = $_GET['assosiative_wallets'] ?? 0;
 if($has_tokens){
-    $response->all_token_details = $solScan->getAccountTokens($_GET['wallet_address'],$days);
+    $response->all_token_details = $solScan->getAccountTokens($_GET['wallet_address'] , $days);
 }
 else{
     $response->all_token_details = new \stdClass();

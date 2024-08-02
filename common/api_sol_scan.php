@@ -38,8 +38,19 @@ class ApiSolScan
                 $json_res['tokenAmount']['solAmount'] = $this->convert_val_to_coin($json_res['lamports'], 9);
                 $token = $this->getTokenDetails($json_res['tokenAddress']);
                 $token_price = $token['price'] ?? 0;
-                $token_price = $this->scientificToString($token_price);
-                $json_res['tokenAmount']['usdAmount'] = bcmul(round($json_res['tokenAmount']['uiAmount'], 5), $token_price);
+                $token_price = round($this->scientificToString($token_price),5);
+
+                $uiAmount = round($json_res['tokenAmount']['uiAmount'], 5);
+                $token_price = (string) $token_price; // Ensure token price is a string
+
+                // Format the uiAmount to a string with 5 decimal places
+                $uiAmount_str = number_format($uiAmount, 5, '.', '');
+
+                // Perform the multiplication using bcmul
+                $result_tokenAmount = bcmul($uiAmount_str, $token_price, 5);
+
+                $json_res['tokenAmount']['usdAmount'] = $result_tokenAmount;
+                // $json_res['tokenAmount']['usdAmount'] = bcmul(round($json_res['tokenAmount']['uiAmount'], 5), $token_price);
                 $token_transfer_details = $this->getTokenTransferDetailsApi($walletAddress, $json_res['tokenAddress'], $days);
                 $json_res['tokenAmount'] = array_merge($json_res['tokenAmount'], $token_transfer_details);
                 $json_res_arr[] = $json_res;
@@ -153,27 +164,26 @@ class ApiSolScan
 
             foreach ($transaction_detail['inputAccount'] as $account) {
                 // if ($account['account'] === $walletAddress) {
-                    $preBalance = $account['preBalance'];
-                    $postBalance = $account['postBalance'];
-                    $amountChange = $postBalance - $preBalance;
+                $preBalance = $account['preBalance'];
+                $postBalance = $account['postBalance'];
+                $amountChange = $postBalance - $preBalance;
 
-                    if ($amountChange > 0) {
-                        // Incoming transaction (received)
-                        $totalReceived += $amountChange;
-                        $totalTrades++;
-                    } elseif ($amountChange < 0) {
-                        // Outgoing transaction (sent)
-                        $totalSent += abs($amountChange);
-                        $totalTrades++;
+                if ($amountChange > 0) {
+                    // Incoming transaction (received)
+                    $totalReceived += $amountChange;
+                    $totalTrades++;
+                } elseif ($amountChange < 0) {
+                    // Outgoing transaction (sent)
+                    $totalSent += abs($amountChange);
+                    $totalTrades++;
 
-                        // Determine if the trade was profitable
-                        if ($totalReceived >= abs($amountChange)) {
-                            $profitTrades++;
-                        }
+                    // Determine if the trade was profitable
+                    if ($totalReceived >= abs($amountChange)) {
+                        $profitTrades++;
                     }
+                }
                 // }
             }
-            
         }
 
         $netProfit = $totalReceived - $totalSent;
@@ -213,7 +223,8 @@ class ApiSolScan
 
         $response = curl_exec($curl);
 
-        $transactions = json_decode($response, true);
+        $transactions = json_decode($response, true) ?? [];
+        
         $token_report = $this->calculateROIWinRateOfToken($walletAddress, $transactions, $days);
 
         return $token_report;
@@ -402,15 +413,14 @@ class ApiSolScan
             if (is_numeric($currentBalance)) {
                 // Convert the balance from lamports to the correct token value
                 $decimals = $json_res['decimals']; // Assuming 9 decimals for BSAMA
-                $currentBalance = round(bcdiv($currentBalance , round(pow(10, $decimals),5)),2);
-            }
-            else{
+                $currentBalance = round(bcdiv($currentBalance, round(pow(10, $decimals), 5)), 2);
+            } else {
                 $currentBalance = 0;
             }
 
             // $json_res['usdAmount'] = bcmul($currentBalance, $token_price);
             $token_transfer_details = $this->getTokenTransferDetailsApi($walletAddress, $json_res['tokenAddress'], $days);
-            
+
             $json_res['tokenAmount'] = $currentBalance;
             $settingSplArra['items'][$key] = [
                 'tokenSymbolName' => ($json_res['tokenName'] ?? $json_res['symbol'] ?? ' Sol'),
