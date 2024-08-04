@@ -456,18 +456,17 @@ class ApiSolScan
             $unique_tokens[] = $json_res['tokenAddress'];
             $token = $this->getTokenDetails($json_res['tokenAddress']);
             $token_price = $token['price'] ?? 0;
-            die($token_price);
             $token_price = $this->scientificToString($token_price);
             $currentBalance = $json_res['postBalance'];
             if (is_numeric($currentBalance)) {
                 // Convert the balance from lamports to the correct token value
                 $decimals = $json_res['decimals']; // Assuming 9 decimals for BSAMA
-                $currentBalance = round(bcdiv($currentBalance, pow(10, $decimals)), 8);
+                $currentBalance = round(bcdiv($currentBalance, round(pow(10, $decimals), 5)), 2);
             } else {
                 $currentBalance = 0;
             }
 
-            // $json_res['usdAmount'] = bcmul($currentBalance, $token_price);
+            // $json_res['usdAmount'] = bcmul($currentBalance, $token_price);   
             $token_transfer_details = $this->getTokenTransferDetailsApi($walletAddress, $json_res['tokenAddress'], $days);
 
             $json_res['tokenAmount'] = $currentBalance;
