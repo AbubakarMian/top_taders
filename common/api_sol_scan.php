@@ -461,7 +461,7 @@ class ApiSolScan
             if (is_numeric($currentBalance)) {
                 // Convert the balance from lamports to the correct token value
                 $decimals = $json_res['decimals']; // Assuming 9 decimals for BSAMA
-                $currentBalance = round(bcdiv($currentBalance, round(pow(10, $decimals), 5)), 2);
+                $currentBalance = round(bcdiv($currentBalance, round(pow(10, $decimals), 5)), 8);
             } else {
                 $currentBalance = 0;
             }
