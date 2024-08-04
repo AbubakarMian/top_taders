@@ -456,6 +456,7 @@ class ApiSolScan
             $unique_tokens[] = $json_res['tokenAddress'];
             $token = $this->getTokenDetails($json_res['tokenAddress']);
             $token_price = $token['price'] ?? 0;
+            die($token_price);
             $token_price = $this->scientificToString($token_price);
             $currentBalance = $json_res['postBalance'];
             if (is_numeric($currentBalance)) {
