@@ -4,7 +4,45 @@ include('../enums.php');
 class ApiSolScan
 {
     public $solscan_key = SOLSCAN_KEY;
+    public $limit_divisor = 1;
+    public $page = 1;
+    public $limit = 10;
+    public $offset = 0;
 
+    function __construct($limit_divisor,$page,$limit)
+    {
+        $this->limit_divisor = $limit_divisor;
+        $this->page = $page;
+        $this->limit = $limit;
+        $this->offset = ($page - 1)* $limit;
+    }
+
+    function calculate_depth($arr){
+        $arr_count = count($arr);
+        $arr_count = $arr_count < 1 ? 1:$arr_count;
+        $depth = floor($arr_count / $this->limit_divisor);
+        $depth = $depth < 1 ? 1:$depth;
+        return $depth;
+    }
+
+    function depth_reached($key,$depth){
+        if($key>$depth){
+            return true;
+        }
+        else{
+            false;
+        }
+    }
+
+    function get_array_after_offset_and_limit($arr) {
+        $offset = $this->offset;
+        $limit = $this->limit;
+        $slicedArray = array_slice($arr, $offset, $limit);
+        return $slicedArray;
+        // foreach ($slicedArray as $element) {
+        //     echo $element . "\n";
+        // }
+    }
     function getWalletAdressDetails($walletAddress, $days)
     {
 
@@ -32,8 +70,13 @@ class ApiSolScan
         $data = json_decode($response, true);
         $json_res_arr = [];
         if (isset($data[0])) {
+            // $depth = $this->calculate_depth($data);
+            $total_tokens=count($data);
+            $data = $this->get_array_after_offset_and_limit($data);
             foreach ($data as $key => $json_res) {
-                // $json_res = $data[0];
+                // if($this->depth_reached($key,$depth)){
+                //     break;
+                // }
                 $json_res['tokenAmount']['tokenSymbolName'] = $json_res['tokenName'] ?? $json_res['tokenSymbol'] ?? ' Sol';
                 $json_res['tokenAmount']['solAmount'] = $this->convert_val_to_coin($json_res['lamports'], 9);
                 $token = $this->getTokenDetails($json_res['tokenAddress']);
@@ -61,7 +104,7 @@ class ApiSolScan
         curl_close($curl);
 
 
-        return $json_res_arr;
+        return ['total_tokens'=>$total_tokens,'data'=>$json_res_arr];
     }
 
     function calculateSplROIWinRateOfToken($walletAddress, $transactions, $days)
@@ -75,6 +118,7 @@ class ApiSolScan
         $filtered_items = array_filter($transactions['items'], function ($item) use ($days_ago) {
             return $item['blockTime'] >= $days_ago;
         });
+        $filtered_items = $this->get_array_after_offset_and_limit($filtered_items);
 
         foreach ($filtered_items as $transaction) {
             // $transaction_detail = $this->getTransactionDetails($transaction['txHash']);
@@ -147,6 +191,7 @@ class ApiSolScan
         $filtered_items = array_filter($transactions['items'], function ($item) use ($days_ago) {
             return $item['blockTime'] >= $days_ago;
         });
+        $filtered_items = $this->get_array_after_offset_and_limit($filtered_items);
 
         foreach ($filtered_items as $transaction) {
             // $transaction_detail = $this->getTransactionDetails($transaction['txHash']);
@@ -232,7 +277,9 @@ class ApiSolScan
 
     function getAccountTokens($walletAddress, $days)
     {
-        $wallet_address_res = $this->getWalletAdressDetails($walletAddress, $days);
+        $wallet_address_res_detail = $this->getWalletAdressDetails($walletAddress, $days);
+        $wallet_address_total_tokens = $wallet_address_res_detail['total_tokens'];
+        $wallet_address_res = $wallet_address_res_detail['data'];
 
         // echo $wallet_address_res;
         $response = new \stdClass();
@@ -244,6 +291,7 @@ class ApiSolScan
         // $response->usd_balance = $this->solToUsd($total_sol_amount['sol_balance']);
         $response->sol_balance = $this->getSolanabalancefromapi($walletAddress);
         $response->usd_balance = $this->solToUsd($response->sol_balance);
+        $response->total_tokens = $wallet_address_total_tokens;
         // $response->usd_balance = $this->solToUsd($total_sol_amount['sol_balance']);
         return $response;
     }

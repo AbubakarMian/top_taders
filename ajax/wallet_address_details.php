@@ -4,11 +4,15 @@ include('../common/api_sol_scan.php');
 use Telegram\Telegram;
 
 $response = new \stdClass();
-$solScan = new ApiSolScan();
 $days = $_GET['days'] ?? 30;
 $is_spl = $_GET['spl'] ?? 0;
 $has_tokens = $_GET['tokens'] ?? 1;
+$limit_divisor = $_GET['limit_divisor'] ?? 1;
 $has_assosiative_wallets = $_GET['assosiative_wallets'] ?? 0;
+$limit = $_GET['limit'] ?? 10;
+$page = $_GET['page'] ?? 1;
+$solScan = new ApiSolScan($limit_divisor,$page,$limit);
+
 if($has_tokens){
     $response->all_token_details = $solScan->getAccountTokens($_GET['wallet_address'] , $days);
 }
