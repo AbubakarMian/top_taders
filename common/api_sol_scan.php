@@ -90,7 +90,7 @@ class ApiSolScan
                 $uiAmount_str = number_format($uiAmount, 5, '.', '');
 
                 // Perform the multiplication using bcmul
-                $result_tokenAmount = bcmul($uiAmount_str, $token_price);
+                $result_tokenAmount = bcmul($uiAmount_str, $token_price, 9);
 
                 $json_res['tokenAmount']['usdAmount'] = $result_tokenAmount;
                 // $json_res['tokenAmount']['usdAmount'] = bcmul(round($json_res['tokenAmount']['uiAmount'], 5), $token_price);
