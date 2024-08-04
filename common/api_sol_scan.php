@@ -90,7 +90,7 @@ class ApiSolScan
                 $uiAmount_str = number_format($uiAmount, 5, '.', '');
 
                 // Perform the multiplication using bcmul
-                $result_tokenAmount = bcmul($uiAmount_str, $token_price, 9);
+                $result_tokenAmount = bcmul($uiAmount_str, $token_price, 5);
 
                 $json_res['tokenAmount']['usdAmount'] = $result_tokenAmount;
                 // $json_res['tokenAmount']['usdAmount'] = bcmul(round($json_res['tokenAmount']['uiAmount'], 5), $token_price);
@@ -461,7 +461,7 @@ class ApiSolScan
             if (is_numeric($currentBalance)) {
                 // Convert the balance from lamports to the correct token value
                 $decimals = $json_res['decimals']; // Assuming 9 decimals for BSAMA
-                $currentBalance = round(bcdiv($currentBalance, round(pow(10, $decimals), 5)), 2);
+                $currentBalance = round(bcdiv($currentBalance, round(pow(10, $decimals), 5)), 8);
             } else {
                 $currentBalance = 0;
             }
