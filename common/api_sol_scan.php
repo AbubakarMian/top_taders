@@ -386,7 +386,8 @@ class ApiSolScan
         if (false && isset($data['price'])) {
             $price = $data['price'];
         } else {
-            $price = $this->getTokenDetailsMarketCap($token_address)['priceUsdt'] ?? 0;
+            $price = 0;
+            // $price = $this->getTokenDetailsMarketCap($token_address)['priceUsdt'] ?? 0;
         }
         $data['price'] = $this->scientificToString($price);
         // {
@@ -613,10 +614,10 @@ class ApiSolScan
         $totalTrades = 0;
 
         $changeType = $transaction['changeType'];
-        $changeAmount = bcdiv($transaction['changeAmount'], bcpow('10', $transaction['decimals'])); // Convert to actual amount
-        $fee = bcdiv($transaction['fee'], bcpow('10', $transaction['decimals'])); // Convert fee to actual amount
-        $preBalance = bcdiv($transaction['preBalance'], bcpow('10', $transaction['decimals'])); // Convert to actual amount
-        $postBalance = bcdiv($transaction['postBalance'], bcpow('10', $transaction['decimals'])); // Convert to actual amount
+        $changeAmount = bcdiv($transaction['changeAmount'], bcpow('10', $transaction['decimals']),8); // Convert to actual amount
+        $fee = bcdiv($transaction['fee'], bcpow('10', $transaction['decimals']),8); // Convert fee to actual amount
+        $preBalance = bcdiv($transaction['preBalance'], bcpow('10', $transaction['decimals']),8); // Convert to actual amount
+        $postBalance = bcdiv($transaction['postBalance'], bcpow('10', $transaction['decimals']),8); // Convert to actual amount
 
         if ($changeType == 'inc') {
             $investment = $preBalance; // Total investment in tokens
@@ -634,11 +635,11 @@ class ApiSolScan
 
         // Calculate ROI
         if (bccomp($totalInvestment, '0') > 0) {
-            $totalROI = bcmul(bcdiv($totalProfit, $totalInvestment), '100');
+            $totalROI = bcmul(bcdiv($totalProfit, $totalInvestment,8), '100',8);
         }
 
         // Calculate Win Rate
-        $winRate = bcmul(bcdiv($totalWins, $totalTrades), '100');
+        $winRate = bcmul(bcdiv($totalWins, $totalTrades,8), '100',8);
 
         return [
             'src' => $transaction['owner'],
