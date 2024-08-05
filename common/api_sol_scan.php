@@ -383,7 +383,7 @@ class ApiSolScan
 
         $response = curl_exec($curl);
         $data = json_decode($response, true);
-        if (false && isset($data['price'])) {
+        if (isset($data['price'])) {
             $price = $data['price'];
         } else {
             $price = 0;
