@@ -9,32 +9,34 @@ class ApiSolScan
     public $limit = 10;
     public $offset = 0;
 
-    function __construct($limit_divisor,$page,$limit)
+    function __construct($limit_divisor, $page, $limit)
     {
         $this->limit_divisor = $limit_divisor;
         $this->page = $page;
         $this->limit = $limit;
-        $this->offset = ($page - 1)* $limit;
+        $this->offset = ($page - 1) * $limit;
     }
 
-    function calculate_depth($arr){
+    function calculate_depth($arr)
+    {
         $arr_count = count($arr);
-        $arr_count = $arr_count < 1 ? 1:$arr_count;
+        $arr_count = $arr_count < 1 ? 1 : $arr_count;
         $depth = floor($arr_count / $this->limit_divisor);
-        $depth = $depth < 1 ? 1:$depth;
+        $depth = $depth < 1 ? 1 : $depth;
         return $depth;
     }
 
-    function depth_reached($key,$depth){
-        if($key>$depth){
+    function depth_reached($key, $depth)
+    {
+        if ($key > $depth) {
             return true;
-        }
-        else{
+        } else {
             false;
         }
     }
 
-    function get_array_after_offset_and_limit($arr) {
+    function get_array_after_offset_and_limit($arr)
+    {
         $offset = $this->offset;
         $limit = $this->limit;
         $slicedArray = array_slice($arr, $offset, $limit);
@@ -71,7 +73,7 @@ class ApiSolScan
         $json_res_arr = [];
         if (isset($data[0])) {
             // $depth = $this->calculate_depth($data);
-            $total_tokens=count($data);
+            $total_tokens = count($data);
             $data = $this->get_array_after_offset_and_limit($data);
             foreach ($data as $key => $json_res) {
                 // if($this->depth_reached($key,$depth)){
@@ -81,15 +83,11 @@ class ApiSolScan
                 $json_res['tokenAmount']['solAmount'] = $this->convert_val_to_coin($json_res['lamports'], 9);
                 $token = $this->getTokenDetails($json_res['tokenAddress']);
                 $token_price = $token['price'] ?? 0;
-                $token_price = round($this->scientificToString($token_price),5);
+                // $token_price = round($this->scientificToString($token_price), 5);
 
                 $uiAmount = round($json_res['tokenAmount']['uiAmount'], 5);
-                $token_price = (string) $token_price; // Ensure token price is a string
-
-                // Format the uiAmount to a string with 5 decimal places
+                // $token_price = (string) $token_price; // Ensure token price is a string
                 $uiAmount_str = number_format($uiAmount, 5, '.', '');
-
-                // Perform the multiplication using bcmul
                 $result_tokenAmount = bcmul($uiAmount_str, $token_price, 5);
 
                 $json_res['tokenAmount']['usdAmount'] = $result_tokenAmount;
@@ -104,7 +102,7 @@ class ApiSolScan
         curl_close($curl);
 
 
-        return ['total_tokens'=>$total_tokens,'data'=>$json_res_arr];
+        return ['total_tokens' => $total_tokens, 'data' => $json_res_arr];
     }
 
     function calculateSplROIWinRateOfToken($walletAddress, $transactions, $days)
@@ -170,13 +168,31 @@ class ApiSolScan
         ];
     }
 
-    function scientificToString($number)
+    // function scientificToString_($number)
+    // { // $number = 1.589E-5
+    //     if (stripos($number, 'e') !== false) {
+    //         $parts = explode('e', strtolower($number));
+    //         $base = $parts[0];
+    //         $exponent = (int) $parts[1];
+    //         return bcmul($base, bcpow('10', $exponent, abs($exponent)));
+    //     }
+    //     return $number;
+    // }
+    function scientificToString($number) // $number = 1.589E-5
     {
         if (stripos($number, 'e') !== false) {
             $parts = explode('e', strtolower($number));
             $base = $parts[0];
             $exponent = (int) $parts[1];
-            return bcmul($base, bcpow('10', $exponent, abs($exponent)));
+
+            // Calculate the result as a string
+            $result = bcmul($base, bcpow('10', $exponent, abs($exponent)), abs($exponent) + strlen($base));
+
+            // Remove any trailing zeros and the decimal point if necessary
+            $result = rtrim($result, '0');
+            $result = rtrim($result, '.');
+
+            return $result;
         }
         return $number;
     }
@@ -269,7 +285,7 @@ class ApiSolScan
         $response = curl_exec($curl);
 
         $transactions = json_decode($response, true) ?? [];
-        
+
         $token_report = $this->calculateROIWinRateOfToken($walletAddress, $transactions, $days);
 
         return $token_report;
@@ -355,7 +371,12 @@ class ApiSolScan
 
         $response = curl_exec($curl);
         $data = json_decode($response, true);
-        $data['price'] = $data['price'] ?? $this->getTokenDetailsMarketCap($token_address)->price ?? 0;
+        if (false && isset($data['price'])) {
+            $price = $data['price'];
+        } else {
+            $price = $this->getTokenDetailsMarketCap($token_address)['priceUsdt'] ?? 0;
+        }
+        $data['price'] = $this->scientificToString($price);
         // {
         //     "name": "USDT",
         //     "symbol": "USDT",
@@ -370,12 +391,12 @@ class ApiSolScan
         //   }
         return $data;
     }
-    
+
     function getTokenDetailsMarketCap($token_address)
     {
 
         $solscan_key = $this->solscan_key;
-        $url = "https://pro-api.solscan.io/market/v1.0/token/meta?tokenAddress=$token_address";
+        $url = "https://pro-api.solscan.io/v1.0/market/token/$token_address";
         $curl = curl_init();
         $token = "token: $solscan_key";
         curl_setopt_array($curl, array(
@@ -501,7 +522,7 @@ class ApiSolScan
             if (is_numeric($currentBalance)) {
                 // Convert the balance from lamports to the correct token value
                 $decimals = $json_res['decimals']; // Assuming 9 decimals for BSAMA
-                $currentBalance = round(bcdiv($currentBalance, round(pow(10, $decimals), 5)), 2);
+                $currentBalance = bcdiv($currentBalance, round(pow(10, $decimals), 5));
             } else {
                 $currentBalance = 0;
             }
