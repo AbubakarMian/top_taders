@@ -355,12 +355,52 @@ class ApiSolScan
 
         $response = curl_exec($curl);
         $data = json_decode($response, true);
-
+        $data['price'] = $data['price'] ?? $this->getTokenDetailsMarketCap($token_address)->price ?? 0;
         // {
         //     "name": "USDT",
         //     "symbol": "USDT",
         //     "icon": "https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB/logo.svg",
         //     "price": 0.999461,
+        //     "volume": 23258213047,
+        //     "decimals": 6,
+        //     "tokenAuthority": "Q6XprfkF8RQQKoQVG33xT88H7wi8Uk1B1CC7YAs69Gi",
+        //     "supply": "1889938220901133",
+        //     "type": "token_address",
+        //     "address": "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB"
+        //   }
+        return $data;
+    }
+    
+    function getTokenDetailsMarketCap($token_address)
+    {
+
+        $solscan_key = $this->solscan_key;
+        $url = "https://pro-api.solscan.io/market/v1.0/token/meta?tokenAddress=$token_address";
+        $curl = curl_init();
+        $token = "token: $solscan_key";
+        curl_setopt_array($curl, array(
+            CURLOPT_URL => $url,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_ENCODING => '',
+            CURLOPT_MAXREDIRS => 10,
+            CURLOPT_TIMEOUT => 0,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+            CURLOPT_CUSTOMREQUEST => 'GET',
+            CURLOPT_HTTPHEADER => array(
+                'accept: application/json',
+                $token
+            ),
+        ));
+
+        $response = curl_exec($curl);
+        $data = json_decode($response, true);
+
+        // {
+        //     "name": "USDT",
+        //     "symbol": "USDT",
+        //     "icon": "https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB/logo.svg",
+        //     "priceUsdt": 0.999461,
         //     "volume": 23258213047,
         //     "decimals": 6,
         //     "tokenAuthority": "Q6XprfkF8RQQKoQVG33xT88H7wi8Uk1B1CC7YAs69Gi",
