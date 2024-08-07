@@ -462,7 +462,7 @@ class ApiSolScan
         // }
         $daysAgo = '&fromTime=' . time() - ($days * 24 * 60 * 60);
         $solscan_key = $this->solscan_key;
-        $url = "https://pro-api.solscan.io/v1.0/account/solTransfers?account=$walletAddress" . "$daysAgo&limit=10";
+        $url = "https://pro-api.solscan.io/v1.0/account/solTransfers?account=$walletAddress" . "$daysAgo&limit=50";
 
         $curl = curl_init();
         $token = "token: $solscan_key";
