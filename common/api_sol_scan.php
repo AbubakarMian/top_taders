@@ -495,7 +495,7 @@ class ApiSolScan
         if(!empty($last_transaction)){
             if(isset($last_transaction['data'][0]['blockTime'])){
                         $last_transaction = $last_transaction['data'][0]['blockTime'];
-             }
+             }   
         }else{
             $last_transaction =  "";
         }
