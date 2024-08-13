@@ -485,14 +485,26 @@ class ApiSolScan
 
         $response = curl_exec($curl);
 
+        curl_close($curl);
+
         // $getTransactionalDetails = $this->getTransactionalDetails($response);
         $assosiative_wallets = $this->getAssociativeWallets($response);
 
-        curl_close($curl);
+        $last_transaction = json_decode($response , TRUE);
+        
+        if(!empty($last_transaction)){
+            if(isset($last_transaction['data'][0]['blockTime'])){
+                        $last_transaction = $last_transaction['data'][0]['blockTime'];
+             }
+        }else{
+            $last_transaction =  "";
+        }
+        
         // $response = $this->addTransferredAmount($response, $walletAddress);
         return [
             // 'transactional_details' => $getTransactionalDetails,
             'assosiative_wallets' => $assosiative_wallets,
+            'last_blockTime' => $last_transaction
         ];
     }
 
