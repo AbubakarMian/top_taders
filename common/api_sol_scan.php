@@ -101,6 +101,8 @@ class ApiSolScan
         }
         curl_close($curl);
 
+        
+        if(empty($total_tokens)) $total_tokens = 0;
 
         return ['total_tokens' => $total_tokens, 'data' => $json_res_arr];
     }
