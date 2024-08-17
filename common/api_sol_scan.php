@@ -93,6 +93,7 @@ class ApiSolScan
                 $json_res['tokenAmount']['usdAmount'] = $result_tokenAmount;
                 // $json_res['tokenAmount']['usdAmount'] = bcmul(round($json_res['tokenAmount']['uiAmount'], 5), $token_price);
                 $token_transfer_details = $this->getTokenTransferDetailsApi($walletAddress, $json_res['tokenAddress'], $days);
+                
                 $json_res['tokenAmount'] = array_merge($json_res['tokenAmount'], $token_transfer_details);
                 $json_res_arr[] = $json_res;
             }
@@ -166,7 +167,7 @@ class ApiSolScan
         return [
             'roi' => $roi,
             'win_rate' => $winRate,
-            // 'profit' => $netProfit
+            'profit' => $netProfit
         ];
     }
 
@@ -270,7 +271,7 @@ class ApiSolScan
         return [
             'roi' => $roi,
             'win_rate' => $winRate,
-            // 'profit' => $netProfit
+            'profit' => $netProfit
         ];
     }
 

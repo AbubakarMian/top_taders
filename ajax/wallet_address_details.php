@@ -33,11 +33,31 @@ else{
 }
 // $response->assosiative_wallets_spl = $solScan->getSplTransfers($_GET['wallet_address'], $days);
 // echo "getSplTransfers <br/>".json_encode($response->assosiative_wallets_spl);die();
-if (isset($response->assosiative_wallets['transactional_details']['aggrigate_result'])) {
-    $aggrigate_result = $response->assosiative_wallets['transactional_details']['aggrigate_result'];
-    $response->all_token_details->roi = $aggrigate_result['roi'];
-    $response->all_token_details->win_rate = $aggrigate_result['win_rate'];
-    $response->all_token_details->profit = $aggrigate_result['profit'];
+// if (isset($response->assosiative_wallets['transactional_details']['aggrigate_result'])) {
+//     $aggrigate_result = $response->assosiative_wallets['transactional_details']['aggrigate_result'];
+//     $response->all_token_details->roi = $aggrigate_result['roi'];
+//     $response->all_token_details->win_rate = $aggrigate_result['win_rate'];
+//     $response->all_token_details->profit = $aggrigate_result['profit'];
+// } else {
+//     $response->all_token_details->roi = 0;
+//     $response->all_token_details->win_rate = 0;
+//     $response->all_token_details->profit = 0;
+// }
+if (isset($response->all_token_details->token_details)) {
+    $roi = 0;
+    $win_rate = 0;
+    $profit = 0;
+    $avg_div = 1;
+    foreach ($response->all_token_details->token_details as $key => $token_details) {
+        $token_amount = $token_details['tokenAmount'];
+        $roi = bcdiv($roi + $token_amount['roi'],$avg_div,8); 
+        $win_rate = bcdiv($win_rate + $token_amount['win_rate'],$avg_div,8);
+        $profit = bcadd($token_amount['profit'],$profit,8);
+        $avg_div = 2; 
+    }
+    $response->all_token_details->roi = $roi;
+    $response->all_token_details->win_rate = $win_rate;
+    $response->all_token_details->profit = $profit;
 } else {
     $response->all_token_details->roi = 0;
     $response->all_token_details->win_rate = 0;
