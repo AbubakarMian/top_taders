@@ -44,15 +44,20 @@ else{
 //     $response->all_token_details->profit = 0;
 // }
 if (isset($response->all_token_details->token_details)) {
-    $roi = 0;
-    $win_rate = 0;
-    $profit = 0;
+    $roi = '0';
+    $win_rate = '0';
+    $profit = '0';
     $avg_div = 1;
     foreach ($response->all_token_details->token_details as $key => $token_details) {
         $token_amount = $token_details['tokenAmount'];
-        $roi = bcdiv($roi + $token_amount['roi'],$avg_div,8); 
-        $win_rate = bcdiv($win_rate + $token_amount['win_rate'],$avg_div,8);
-        $profit = bcadd($token_amount['profit'],$profit,8);
+        $roi = bcdiv(bcadd($roi , number_format_simple($token_amount['roi']),8),$avg_div,8); 
+        $roi = number_format_simple($roi);
+        $win_rate = bcdiv(bcadd($win_rate, number_format_simple($token_amount['win_rate']),8),$avg_div,8);
+        $win_rate = number_format_simple($win_rate);
+
+        $profit = bcadd(number_format_simple($token_amount['profit']),$profit,8);
+        $profit = number_format_simple($profit);
+
         $avg_div = 2; 
     }
     $response->all_token_details->roi = $roi;
@@ -78,3 +83,13 @@ foreach ($transfers_json as $key => $transfer) {
 //     $group_chat_id = GROUP_CHAT_ID;
 //     $telegram->send_message($apiToken,$message,$group_chat_id);
 // return $transfers;
+
+function number_format_simple($num) {
+    if (strpos(strtolower($num), 'e') !== false) {
+        $num = sprintf('%.8f', $num);
+    } else {
+        $num = number_format((float)$num, 8, '.', '');
+    }
+    $num = str_replace(',', '', $num);
+    return $num;
+}
