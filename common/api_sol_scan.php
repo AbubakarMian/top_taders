@@ -93,7 +93,7 @@ class ApiSolScan
                 $json_res['tokenAmount']['usdAmount'] = $result_tokenAmount;
                 // $json_res['tokenAmount']['usdAmount'] = bcmul(round($json_res['tokenAmount']['uiAmount'], 5), $token_price);
                 $token_transfer_details = $this->getTokenTransferDetailsApi($walletAddress, $json_res['tokenAddress'], $days);
-                
+
                 $json_res['tokenAmount'] = array_merge($json_res['tokenAmount'], $token_transfer_details);
                 $json_res_arr[] = $json_res;
             }
@@ -102,8 +102,8 @@ class ApiSolScan
         }
         curl_close($curl);
 
-        
-        if(empty($total_tokens)) $total_tokens = 0;
+
+        if (empty($total_tokens)) $total_tokens = 0;
 
         return ['total_tokens' => $total_tokens, 'data' => $json_res_arr];
     }
@@ -212,12 +212,12 @@ class ApiSolScan
             // die($item['blockTime'] .' : '. $days_ago.' : ');
             return $item['blockTime'] >= $days_ago;
         });
-        
+
         // die($key); 
         // die(json_encode($items));
         // die(json_encode($transactions));
 
-        foreach ($filtered_items as $key=>$transaction) {
+        foreach ($filtered_items as $key => $transaction) {
             // $transaction_detail = $this->getTransactionDetails($transaction['txHash']);
 
 
@@ -235,16 +235,16 @@ class ApiSolScan
                 $preBalance = $account['preBalance'];
                 $postBalance = $account['postBalance'];
                 // $amountChange = $postBalance - $preBalance;
-                $amountChange = bcsub($postBalance , $preBalance);
+                $amountChange = bcsub($postBalance, $preBalance);
 
                 if ($amountChange > 0) {
                     // Incoming transaction (received)
                     // $totalReceived += $amountChange;
-                    $totalReceived = bcadd($totalReceived,$amountChange);
+                    $totalReceived = bcadd($totalReceived, $amountChange);
                     $totalTrades++;
                 } elseif ($amountChange < 0) {
                     // Outgoing transaction (sent)
-                    $totalSent = bcadd($totalSent,abs($amountChange));
+                    $totalSent = bcadd($totalSent, abs($amountChange));
                     // $totalSent += abs($amountChange);
                     $totalTrades++;
 
@@ -258,13 +258,13 @@ class ApiSolScan
         }
 
         // $netProfit = $totalReceived - $totalSent;
-        $netProfit = bcsub($totalReceived , $totalSent);
+        $netProfit = bcsub($totalReceived, $totalSent);
         // die(bcdiv($netProfit , $totalSent,8));
         // die(bcmul(bcdiv($netProfit , $totalSent,10) , 100,8).' : '.$totalReceived .' : '. $totalSent);
         // $roi = ($totalSent > 0) ? ($netProfit / $totalSent) * 100 : 0;
-        $roi = ($totalSent > 0) ? bcmul(bcdiv($netProfit , $totalSent,8) , 100,8) : 0;
+        $roi = ($totalSent > 0) ? bcmul(bcdiv($netProfit, $totalSent, 8), 100, 8) : 0;
         // $winRate = ($totalTrades > 0) ? ($profitTrades / $totalTrades) * 100 : 0;
-        $winRate = ($totalTrades > 0) ? bcmul(bcdiv($profitTrades , $totalTrades,8) , 100,8) : 0;
+        $winRate = ($totalTrades > 0) ? bcmul(bcdiv($profitTrades, $totalTrades, 8), 100, 8) : 0;
         // $netProfit = $netProfit  / pow(10, 9); // Assuming lamports, adjust if different
 
 
@@ -304,6 +304,97 @@ class ApiSolScan
         $token_report = $this->calculateROIWinRateOfToken($walletAddress, $transactions, $days);
 
         return $token_report;
+    }
+
+
+    function getLastTransactionsApi($walletAddress, $limit)
+    {
+
+        $solscan_key = $this->solscan_key;
+        $url = "https://pro-api.solscan.io/v1.0/account/transactions?account=$walletAddress&limit=$limit";
+        $curl = curl_init();
+        $token = "token: $solscan_key";
+        curl_setopt_array($curl, array(
+            CURLOPT_URL => $url,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_ENCODING => '',
+            CURLOPT_MAXREDIRS => 10,
+            CURLOPT_TIMEOUT => 0,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+            CURLOPT_CUSTOMREQUEST => 'GET',
+            CURLOPT_HTTPHEADER => array(
+                'accept: application/json',
+                $token
+            ),
+        ));
+
+        $response = curl_exec($curl);
+
+        $transactions = json_decode($response, true) ?? [];
+        $res = new \stdClass();
+        $res->status = false;
+        foreach ($transactions as $key => $transaction) {
+            // if(isset($transaction['txHash'])){
+            //     $res->status = true;
+            // }
+            // else{
+            //     $res->status = false;
+            // }
+            $txHash = $transaction['txHash'] ?? '';
+            $transactional_detail_res = $this->getTransactionalDetailFromSignatureApi($txHash);
+            // $transactional_detail_res = $this->getTransactionalDetailFromSignatureApi('4PUhQuzwYn1Re1FS97QTPLo4BsrF878rMwzZnofXrEWntdf5WEexWasUyksSpbD1yS6qwiPQaigeVuGeAjvBupxS');
+            $msg = $this->getLatestTransactionMessage($transactional_detail_res);
+        }
+        $res->status = $msg->status;
+        $res->message = $msg->message;
+        $res->wallet_address = $walletAddress;
+
+        return $res;
+    }
+
+    function getLatestTransactionMessage($jsonData)
+    {
+
+        $data = json_decode($jsonData, true);
+
+        // Extract the necessary information
+        // $walletAddress = $data['signer'][0];
+
+        $lamports = 0;
+        $transactionType = '';
+        $status = false;
+        foreach ($data['parsedInstruction']??[] as $key => $parsedInstruction) {
+            // if($key>0){
+            //     die(json_encode($data)); 
+            // }
+            if(isset($parsedInstruction['params']['lamports']) && isset($parsedInstruction['type'])){
+                $lamports = $parsedInstruction['params']['lamports'];
+                $transactionType = $parsedInstruction['type'];
+                break;
+            }
+        }
+        // Convert lamports to SOL (1 SOL = 1,000,000,000 lamports)
+        $solAmount = bcdiv($lamports , 1000000000);
+
+        // Determine if it's a purchase or sale based on transaction type
+        if ($transactionType === "deposit") {
+            $status = true;
+            $message = "Just purchased " . $solAmount . " SOL " ;
+        } elseif ($transactionType === "withdraw") {
+            $status = true;
+            $message = "Just sold " . $solAmount . " SOL " ;
+        } else {
+            // $message = "Transaction of " . $solAmount . " SOL from wallet address " . $walletAddress;
+            $message = "";
+        }
+
+        // Output the message
+        $res = new \stdClass();
+        $res->status = $status;
+        $res->message = $message;
+
+        return $res;
     }
 
     function getAccountTokens($walletAddress, $days)
@@ -491,16 +582,16 @@ class ApiSolScan
         // $getTransactionalDetails = $this->getTransactionalDetails($response);
         $assosiative_wallets = $this->getAssociativeWallets($response);
 
-        $last_transaction = json_decode($response , TRUE);
-        
-        if(!empty($last_transaction)){
-            if(isset($last_transaction['data'][0]['blockTime'])){
-                        $last_transaction = $last_transaction['data'][0]['blockTime'];
-             }   
-        }else{
+        $last_transaction = json_decode($response, TRUE);
+
+        if (!empty($last_transaction)) {
+            if (isset($last_transaction['data'][0]['blockTime'])) {
+                $last_transaction = $last_transaction['data'][0]['blockTime'];
+            }
+        } else {
             $last_transaction =  "";
         }
-        
+
         // $response = $this->addTransferredAmount($response, $walletAddress);
         return [
             // 'transactional_details' => $getTransactionalDetails,
@@ -629,10 +720,10 @@ class ApiSolScan
         $totalTrades = 0;
 
         $changeType = $transaction['changeType'];
-        $changeAmount = bcdiv($transaction['changeAmount'], bcpow('10', $transaction['decimals']),8); // Convert to actual amount
-        $fee = bcdiv($transaction['fee'], bcpow('10', $transaction['decimals']),8); // Convert fee to actual amount
-        $preBalance = bcdiv($transaction['preBalance'], bcpow('10', $transaction['decimals']),8); // Convert to actual amount
-        $postBalance = bcdiv($transaction['postBalance'], bcpow('10', $transaction['decimals']),8); // Convert to actual amount
+        $changeAmount = bcdiv($transaction['changeAmount'], bcpow('10', $transaction['decimals']), 8); // Convert to actual amount
+        $fee = bcdiv($transaction['fee'], bcpow('10', $transaction['decimals']), 8); // Convert fee to actual amount
+        $preBalance = bcdiv($transaction['preBalance'], bcpow('10', $transaction['decimals']), 8); // Convert to actual amount
+        $postBalance = bcdiv($transaction['postBalance'], bcpow('10', $transaction['decimals']), 8); // Convert to actual amount
 
         if ($changeType == 'inc') {
             $investment = $preBalance; // Total investment in tokens
@@ -650,11 +741,11 @@ class ApiSolScan
 
         // Calculate ROI
         if (bccomp($totalInvestment, '0') > 0) {
-            $totalROI = bcmul(bcdiv($totalProfit, $totalInvestment,8), '100',8);
+            $totalROI = bcmul(bcdiv($totalProfit, $totalInvestment, 8), '100', 8);
         }
 
         // Calculate Win Rate
-        $winRate = bcmul(bcdiv($totalWins, $totalTrades,8), '100',8);
+        $winRate = bcmul(bcdiv($totalWins, $totalTrades, 8), '100', 8);
 
         return [
             'src' => $transaction['owner'],
@@ -979,8 +1070,8 @@ class ApiSolScan
     function getConversionRates()
     {
         return [
-            "raydium" => ["usd" => 2.36],
-            "solana" => ["usd" => 176.54]
+            "raydium" => ["usd" => 1.71],
+            "solana" => ["usd" => 143]
         ];
         $apiUrl = 'https://api.coingecko.com/api/v3/simple/price?ids=solana,raydium&vs_currencies=usd';
         $response = @file_get_contents($apiUrl);
