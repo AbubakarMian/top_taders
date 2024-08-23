@@ -307,7 +307,7 @@ class ApiSolScan
     }
 
 
-    function getLastTransactionsApi($walletAddress, $limit)
+    function getLastTransactionsApi($walletAddress, $limit, $uniq_hash)
     {
 
         $solscan_key = $this->solscan_key;
@@ -334,20 +334,58 @@ class ApiSolScan
         $transactions = json_decode($response, true) ?? [];
         $res = new \stdClass();
         $res->status = false;
-        foreach ($transactions as $key => $transaction) {
-            // if(isset($transaction['txHash'])){
-            //     $res->status = true;
-            // }
-            // else{
-            //     $res->status = false;
-            // }
-            $txHash = $transaction['txHash'] ?? '';
-            $transactional_detail_res = $this->getTransactionalDetailFromSignatureApi($txHash);
-            // $transactional_detail_res = $this->getTransactionalDetailFromSignatureApi('4PUhQuzwYn1Re1FS97QTPLo4BsrF878rMwzZnofXrEWntdf5WEexWasUyksSpbD1yS6qwiPQaigeVuGeAjvBupxS');
-            $msg = $this->getLatestTransactionMessage($transactional_detail_res);
+        $hash_matched = false;
+        $msg = new \stdClass();
+        $msg->status = false;
+        $msg->message = "";
+        $msg->transaction_type = "";
+        $msg->amount = 0;
+        $msg->time = 0;
+        $txHash = '';
+
+        if ($uniq_hash == '') {
+            foreach ($transactions as $key => $transaction) {
+                $txHash = $transaction['txHash'] ?? '';
+                // if(in_array($txHash , [
+                //     '4vJ3sfVxduNk2DJUkQJ48GsckHGmyZd43Ei4RixixVJGsJK9VhZFCfBViV3LwhkPfDTTcRLwUNVqX4d5gEkEDMs',
+                //     'DTpLuLTs28VDo1QyDu1y15FfEPRu7Mv7d1Ei3tjFNPfgcKsPQtYskJBtCM5VZXzcz8F8j1Um6YtPRA9jXKM8ZBo',
+                //     '5coEPpqZPp2sRaQkzxHKtCBJkpvKTG4wJyLCmaMc4fHVLB9a8C6WpwoGXC5gwr85Pcdm1jrXdK5bnVDKYAhYG4xS',
+                //     '3khpu14JnXqaLBbk8EE1gL9fbDRe7MZ7YiXoSdwZpC6WkeHFFnooeydhf2WgU254NwZB1uRPZ7FvXtyfPSQ2FrnM',
+                //     '3RmJabs8h53s37qWyzCbeihWzc8hq2UiU843feBZYBJ9LxHtsi7cHjuHsWr7TtUdYyZ5fEVZZEKYJ5ShrtM8cLHF',
+                //     ])){
+                //     continue;
+                // }
+                $transactional_detail_res = $this->getTransactionalDetailFromSignatureApi($txHash);
+                $msg = $this->getLatestTransactionMessage($transactional_detail_res);
+                if ($msg->status) {
+                    break;
+                }
+            }
+        } else {
+            foreach ($transactions as $key => $transaction) {
+                if (($key > 0) && ($uniq_hash == $transactions[($key)]['txHash'])
+                ) {
+                    for ($key_sub = ($key - 1); $key_sub >= 0; $key_sub--) {
+
+                        $txHash = $transactions[$key_sub]['txHash'];
+                        $transactional_detail_res = $this->getTransactionalDetailFromSignatureApi($txHash);
+                        $msg = $this->getLatestTransactionMessage($transactional_detail_res);
+                        if ($msg->status) {
+                            break;
+                        }
+                    }
+                    break;
+                }
+            }
         }
+
         $res->status = $msg->status;
+        $res->uniq_hash = $txHash;
         $res->message = $msg->message;
+        $res->transaction_type = $msg->transaction_type;
+        $res->amount = $msg->amount;
+        $res->time = $msg->time;
+
         $res->wallet_address = $walletAddress;
 
         return $res;
@@ -355,35 +393,33 @@ class ApiSolScan
 
     function getLatestTransactionMessage($jsonData)
     {
-
         $data = json_decode($jsonData, true);
-
-        // Extract the necessary information
-        // $walletAddress = $data['signer'][0];
-
         $lamports = 0;
         $transactionType = '';
+        $amount =  0;
         $status = false;
-        foreach ($data['parsedInstruction']??[] as $key => $parsedInstruction) {
-            // if($key>0){
-            //     die(json_encode($data)); 
-            // }
-            if(isset($parsedInstruction['params']['lamports']) && isset($parsedInstruction['type'])){
+        $time = 0;
+        foreach ($data['parsedInstruction'] ?? [] as $key => $parsedInstruction) {
+            if (isset($parsedInstruction['params']['lamports']) && isset($parsedInstruction['type'])) {
                 $lamports = $parsedInstruction['params']['lamports'];
                 $transactionType = $parsedInstruction['type'];
                 break;
             }
         }
         // Convert lamports to SOL (1 SOL = 1,000,000,000 lamports)
-        $solAmount = bcdiv($lamports , 1000000000);
+        $solAmount = bcdiv($lamports, 1000000000, 5);
 
         // Determine if it's a purchase or sale based on transaction type
         if ($transactionType === "deposit") {
             $status = true;
-            $message = "Just purchased " . $solAmount . " SOL " ;
+            $message = "Just purchased " . $solAmount . " SOL ";
+            $amount =  $solAmount;
+            $time = $data['blockTime'];
         } elseif ($transactionType === "withdraw") {
             $status = true;
-            $message = "Just sold " . $solAmount . " SOL " ;
+            $message = "Just sold " . $solAmount . " SOL ";
+            $amount =  $solAmount;
+            $time = $data['blockTime'];
         } else {
             // $message = "Transaction of " . $solAmount . " SOL from wallet address " . $walletAddress;
             $message = "";
@@ -393,6 +429,9 @@ class ApiSolScan
         $res = new \stdClass();
         $res->status = $status;
         $res->message = $message;
+        $res->transaction_type = $transactionType;
+        $res->amount = $amount;
+        $res->time = $time;
 
         return $res;
     }
