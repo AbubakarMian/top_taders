@@ -342,56 +342,53 @@ class ApiSolScan
         $msg->amount = 0;
         $msg->time = 0;
         $txHash = '';
+        $res_arr = [];
 
         if ($uniq_hash == '') {
             foreach ($transactions as $key => $transaction) {
                 $txHash = $transaction['txHash'] ?? '';
                 // if(in_array($txHash , [
-                //     '4vJ3sfVxduNk2DJUkQJ48GsckHGmyZd43Ei4RixixVJGsJK9VhZFCfBViV3LwhkPfDTTcRLwUNVqX4d5gEkEDMs',
-                //     'DTpLuLTs28VDo1QyDu1y15FfEPRu7Mv7d1Ei3tjFNPfgcKsPQtYskJBtCM5VZXzcz8F8j1Um6YtPRA9jXKM8ZBo',
-                //     '5coEPpqZPp2sRaQkzxHKtCBJkpvKTG4wJyLCmaMc4fHVLB9a8C6WpwoGXC5gwr85Pcdm1jrXdK5bnVDKYAhYG4xS',
+                    // '4vJ3sfVxduNk2DJUkQJ48GsckHGmyZd43Ei4RixixVJGsJK9VhZFCfBViV3LwhkPfDTTcRLwUNVqX4d5gEkEDMs',
+                    // 'DTpLuLTs28VDo1QyDu1y15FfEPRu7Mv7d1Ei3tjFNPfgcKsPQtYskJBtCM5VZXzcz8F8j1Um6YtPRA9jXKM8ZBo',
+                    // '5coEPpqZPp2sRaQkzxHKtCBJkpvKTG4wJyLCmaMc4fHVLB9a8C6WpwoGXC5gwr85Pcdm1jrXdK5bnVDKYAhYG4xS',
                 //     '3khpu14JnXqaLBbk8EE1gL9fbDRe7MZ7YiXoSdwZpC6WkeHFFnooeydhf2WgU254NwZB1uRPZ7FvXtyfPSQ2FrnM',
                 //     '3RmJabs8h53s37qWyzCbeihWzc8hq2UiU843feBZYBJ9LxHtsi7cHjuHsWr7TtUdYyZ5fEVZZEKYJ5ShrtM8cLHF',
                 //     ])){
                 //     continue;
                 // }
                 $transactional_detail_res = $this->getTransactionalDetailFromSignatureApi($txHash);
-                $msg = $this->getLatestTransactionMessage($transactional_detail_res);
+                $msg = $this->getLatestTransactionMessage($transactional_detail_res,$txHash);
                 if ($msg->status) {
+                    $res_arr[] = $msg;
                     break;
                 }
             }
         } else {
+            // die(json_encode($transactions));
             foreach ($transactions as $key => $transaction) {
-                if (($key > 0) && ($uniq_hash == $transactions[($key)]['txHash'])
-                ) {
+                if (($key > 0) && ($uniq_hash == $transaction['txHash'])) {
                     for ($key_sub = ($key - 1); $key_sub >= 0; $key_sub--) {
-
                         $txHash = $transactions[$key_sub]['txHash'];
                         $transactional_detail_res = $this->getTransactionalDetailFromSignatureApi($txHash);
-                        $msg = $this->getLatestTransactionMessage($transactional_detail_res);
+                        $msg = $this->getLatestTransactionMessage($transactional_detail_res, $txHash);
                         if ($msg->status) {
-                            break;
+                            $res_arr[] = $msg;
                         }
                     }
-                    break;
+                    break;  // Exit outer loop since we've found a matching hash and processed previous transactions
                 }
             }
         }
 
-        $res->status = $msg->status;
-        $res->uniq_hash = $txHash;
-        $res->message = $msg->message;
-        $res->transaction_type = $msg->transaction_type;
-        $res->amount = $msg->amount;
-        $res->time = $msg->time;
-
+        $res->status = count($res_arr)>0;
+        // $res->transactions = array_reverse($res_arr);
+        $res->transactions = $res_arr;
         $res->wallet_address = $walletAddress;
 
         return $res;
     }
 
-    function getLatestTransactionMessage($jsonData)
+    function getLatestTransactionMessage($jsonData,$uniq_hash)
     {
         $data = json_decode($jsonData, true);
         $lamports = 0;
@@ -423,11 +420,15 @@ class ApiSolScan
         } else {
             // $message = "Transaction of " . $solAmount . " SOL from wallet address " . $walletAddress;
             $message = "";
+            // if(!in_array()){
+
+            // }
         }
 
         // Output the message
         $res = new \stdClass();
         $res->status = $status;
+        $res->uniq_hash = $uniq_hash;
         $res->message = $message;
         $res->transaction_type = $transactionType;
         $res->amount = $amount;
