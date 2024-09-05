@@ -209,24 +209,16 @@ class ApiSolScan
         $days_ago = $now - ($days * 24 * 60 * 60);
         // $items = $this->get_array_after_offset_and_limit($transactions['items']);
         $filtered_items = array_filter($transactions['items'], function ($item) use ($days_ago) {
-            // die($item['blockTime'] .' : '. $days_ago.' : ');
             return $item['blockTime'] >= $days_ago;
         });
-
-        // die($key); 
-        // die(json_encode($items));
-        // die(json_encode($transactions));
-
+        
         foreach ($filtered_items as $key => $transaction) {
-            // $transaction_detail = $this->getTransactionDetails($transaction['txHash']);
-
-
             $response =  $this->getTransactionalDetailFromSignatureApi($transaction['txHash']);
             $transaction_detail = json_decode($response, true);
             if (!is_array($transaction_detail)) {
                 $transaction_detail = [];
             }
-
+            
             if (!isset($transaction_detail['inputAccount'])) {
                 $transaction_detail['inputAccount'] = [];
             }
@@ -238,35 +230,21 @@ class ApiSolScan
                 $amountChange = bcsub($postBalance, $preBalance);
 
                 if ($amountChange > 0) {
-                    // Incoming transaction (received)
-                    // $totalReceived += $amountChange;
                     $totalReceived = bcadd($totalReceived, $amountChange);
                     $totalTrades++;
                 } elseif ($amountChange < 0) {
-                    // Outgoing transaction (sent)
                     $totalSent = bcadd($totalSent, abs($amountChange));
-                    // $totalSent += abs($amountChange);
                     $totalTrades++;
-
-                    // Determine if the trade was profitable
                     if ($totalReceived >= abs($amountChange)) {
                         $profitTrades++;
                     }
                 }
-                // }
             }
         }
-
-        // $netProfit = $totalReceived - $totalSent;
+        
         $netProfit = bcsub($totalReceived, $totalSent);
-        // die(bcdiv($netProfit , $totalSent,8));
-        // die(bcmul(bcdiv($netProfit , $totalSent,10) , 100,8).' : '.$totalReceived .' : '. $totalSent);
-        // $roi = ($totalSent > 0) ? ($netProfit / $totalSent) * 100 : 0;
         $roi = ($totalSent > 0) ? bcmul(bcdiv($netProfit, $totalSent, 8), 100, 8) : 0;
-        // $winRate = ($totalTrades > 0) ? ($profitTrades / $totalTrades) * 100 : 0;
         $winRate = ($totalTrades > 0) ? bcmul(bcdiv($profitTrades, $totalTrades, 8), 100, 8) : 0;
-        // $netProfit = $netProfit  / pow(10, 9); // Assuming lamports, adjust if different
-
 
         return [
             'roi' => $roi,
