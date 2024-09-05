@@ -160,7 +160,8 @@ class ApiSolScan
         }
 
         $netProfit = $totalReceived - $totalSent;
-        $roi = ($totalSent > 0) ? ($netProfit / $totalSent) * 100 : 0;
+        $roi = ($netProfit > 0) ? ($netProfit / $totalSent) * 100 : 0;
+        // $roi = ($totalSent > 0) ? ($netProfit / $totalSent) * 100 : 0;
         $winRate = ($totalTrades > 0) ? ($profitTrades / $totalTrades) * 100 : 0;
         $netProfit = $netProfit  / pow(10, 9); // Assuming lamports, adjust if different
 
