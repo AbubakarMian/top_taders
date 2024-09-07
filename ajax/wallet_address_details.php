@@ -43,31 +43,31 @@ else{
 //     $response->all_token_details->win_rate = 0;
 //     $response->all_token_details->profit = 0;
 // }
-if (isset($response->all_token_details->token_details)) {
-    $roi = '0';
-    $win_rate = '0';
-    $profit = '0';
-    $avg_div = 1;
-    foreach ($response->all_token_details->token_details as $key => $token_details) {
-    //     $token_amount = $token_details['tokenAmount'];
-    //     $roi = bcdiv(bcadd($roi , number_format_simple($token_amount['roi']),8),$avg_div,8); 
-    //     $roi = number_format_simple($roi);
-    //     $win_rate = bcdiv(bcadd($win_rate, number_format_simple($token_amount['win_rate']),8),$avg_div,8);
-    //     $win_rate = number_format_simple($win_rate);
+// if (isset($response->all_token_details->token_details)) {
+//     $roi = '0';
+//     $win_rate = '0';
+//     $profit = '0';
+//     $avg_div = 1;
+//     foreach ($response->all_token_details->token_details as $key => $token_details) {
+//     //     $token_amount = $token_details['tokenAmount'];
+//     //     $roi = bcdiv(bcadd($roi , number_format_simple($token_amount['roi']),8),$avg_div,8); 
+//     //     $roi = number_format_simple($roi);
+//     //     $win_rate = bcdiv(bcadd($win_rate, number_format_simple($token_amount['win_rate']),8),$avg_div,8);
+//     //     $win_rate = number_format_simple($win_rate);
 
-    //     $profit = bcadd(number_format_simple($token_amount['profit']),$profit,8);
-    //     $profit = number_format_simple($profit);
+//     //     $profit = bcadd(number_format_simple($token_amount['profit']),$profit,8);
+//     //     $profit = number_format_simple($profit);
 
-    //     $avg_div = 2; 
-    // }
-    // $response->all_token_details->roi = $roi;
-    // $response->all_token_details->win_rate = $win_rate;
-    // $response->all_token_details->profit = $profit;
-} else {
-    $response->all_token_details->roi = 0;
-    $response->all_token_details->win_rate = 0;
-    $response->all_token_details->profit = 0;
-}
+//     //     $avg_div = 2; 
+//     // }
+//     // $response->all_token_details->roi = $roi;
+//     // $response->all_token_details->win_rate = $win_rate;
+//     // $response->all_token_details->profit = $profit;
+// } else {
+//     $response->all_token_details->roi = 0;
+//     $response->all_token_details->win_rate = 0;
+//     $response->all_token_details->profit = 0;
+// }
 echo json_encode($response);
 return;
 return $transfers;
